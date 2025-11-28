@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/features/home/home_menu_page.dart';
 import 'package:lms_project/features/teachers/teacher_home_page.dart';
+//git add . then git commit -m "commit message" then git push
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
