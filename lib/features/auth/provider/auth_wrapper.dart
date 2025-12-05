@@ -6,6 +6,8 @@ import 'package:lms_project/features/home/home_menu_page.dart';
 
 //used for changing pages based on user authentication status
 class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
   @override
 
   Widget build(BuildContext context) {

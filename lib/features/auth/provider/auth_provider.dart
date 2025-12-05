@@ -9,16 +9,20 @@ class AuthProvider extends ChangeNotifier {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   //Sign up w/ email and password
-  Future<String?> signUp(String email, String password) async {
+  Future<bool> signUp(String email, String password) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
+     final res =  await _auth.createUserWithEmailAndPassword(
         email: email, 
         password: password
       );
-      return null;
+      if(res.user!=null){
+        return true;
+      }
+      return false;
     }
     on FirebaseAuthException catch (e) {
-      return e.message;
+      print(e.message);
+      return false;
     }
   }
 

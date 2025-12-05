@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/features/auth/login_page.dart';
+import 'package:lms_project/features/home/home_menu_page.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
+import 'package:provider/provider.dart';
+import 'package:lms_project/features/auth/provider/auth_provider.dart';
 
 class SignUpPage extends StatelessWidget {
   const SignUpPage({super.key});
@@ -48,33 +51,73 @@ class _SignUpHeader extends StatelessWidget {
   }
 }
 
-class _SignUpForm extends StatelessWidget {
+class _SignUpForm extends StatefulWidget {
   const _SignUpForm();
+
+  @override
+  State<_SignUpForm> createState() => _SignUpFormState();
+}
+
+class _SignUpFormState extends State<_SignUpForm> {
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+
+  bool loading = false;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _InputField(icon: Icons.person_outline, hintText: "Full Name", obscure: true),
+        _InputField(controller: nameController, icon: Icons.person_outline, hintText: "Full Name", obscure: true),
         const SizedBox(height: 20),
-        _InputField(icon: Icons.email_outlined, hintText: "Email", obscure: true),
+        _InputField(controller: emailController, icon: Icons.email_outlined, hintText: "Email", obscure: true),
         const SizedBox(height: 20),
-        _InputField(icon: Icons.lock_outline, hintText: "Password", obscure: true),
+        _InputField(controller: passwordController, icon: Icons.lock_outline, hintText: "Password", obscure: true),
         const SizedBox(height: 20),
-        _InputField(icon: Icons.lock_person_outlined, hintText: "Confirm Password", obscure: true),
+        _InputField(controller: confirmPasswordController, icon: Icons.lock_person_outlined, hintText: "Confirm Password", obscure: true),
         const SizedBox(height: 30),
-        const _SignUpButton(),
+       Consumer<AuthProvider>(
+      builder: (context, provider, _) {
+        return ElevatedButton(
+          onPressed: () async {
+            final res = await provider.signUp(emailController.text, passwordController.text);
+
+            if(context.mounted){
+              if(res){
+              Navigator.push(context, MaterialPageRoute(builder: (context)=>HomeMenuPage()));
+            }else{
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Something went error")));
+            }
+            }
+            
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal[400],
+            minimumSize: const Size(double.infinity, 55),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+            elevation: 5,
+          ),
+          child: Text("Sign Up", style: AppTextStyles.buttonPrimary),
+        );
+      }
+    )
       ],
     );
   }
 }
 
 class _InputField extends StatelessWidget {
+  final TextEditingController controller;
   final IconData icon;
   final String hintText;
   final bool obscure;
 
   const _InputField({
+    required this.controller,
     required this.icon,
     required this.hintText,
     this.obscure = false,
@@ -83,6 +126,7 @@ class _InputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
       style: AppTextStyles.input,
       decoration: InputDecoration(
@@ -100,24 +144,3 @@ class _InputField extends StatelessWidget {
   }
 }
 
-class _SignUpButton extends StatelessWidget {
-  const _SignUpButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () {
-        Navigator.pop(context, MaterialPageRoute(builder: (context) => LoginPage()));
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.teal[400],
-        minimumSize: const Size(double.infinity, 55),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
-        elevation: 5,
-      ),
-      child: Text("Sign Up", style: AppTextStyles.buttonPrimary),
-    );
-  }
-}
