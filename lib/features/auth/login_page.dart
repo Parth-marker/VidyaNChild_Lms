@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/features/auth/signup_page.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
+import 'package:provider/provider.dart';
+import 'package:lms_project/features/auth/provider/auth_provider.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool loading = false;
+
+  @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6), // pale yellow
       body: SafeArea(
@@ -18,19 +32,43 @@ class LoginPage extends StatelessWidget {
               children: [
                 const _LogoHeader(),
                 const SizedBox(height: 40),
+
+                //Email field
                 _TextFieldWidget(
+                  controller: emailController,
                   hintText: 'Email',
                   icon: Icons.email_outlined,
                   obscureText: true,
                 ),
                 const SizedBox(height: 20),
+
+                //Password field
                 _TextFieldWidget(
+                  controller: passwordController,
                   hintText: 'Password',
                   icon: Icons.lock_outline,
                   obscureText: true,
                 ),
                 const SizedBox(height: 30),
-                const _LoginButton(),
+
+                _LoginButton(
+                  loading: loading,
+                  onPressed: () async {
+                    setState(() => loading = true);
+
+                    final error = await authProvider.login(
+                      emailController.text.trim(),
+                      passwordController.text.trim(),
+                    );
+                    setState(() => loading = false);
+
+                    if (error != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(error)),
+                      );
+                    }
+                  }
+                ),
                 const SizedBox(height: 20),
                 Text("Forgot Password?", style: AppTextStyles.linkPurple),
 
@@ -70,16 +108,19 @@ class _TextFieldWidget extends StatelessWidget {
   final String hintText;
   final IconData icon;
   final bool obscureText;
+  final TextEditingController controller;
 
   const _TextFieldWidget({
     required this.hintText,
     required this.icon,
     this.obscureText = false,
+    required this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       obscureText: obscureText,
       style: AppTextStyles.input,
       decoration: InputDecoration(
@@ -98,12 +139,17 @@ class _TextFieldWidget extends StatelessWidget {
 }
 
 class _LoginButton extends StatelessWidget {
-  const _LoginButton();
+  final bool loading;
+  final VoidCallback onPressed;
+  const _LoginButton({
+    required this.loading,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () {},
+      onPressed: loading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.purple[300],
         minimumSize: const Size(double.infinity, 55),
@@ -112,7 +158,9 @@ class _LoginButton extends StatelessWidget {
         ),
         elevation: 5,
       ),
-      child: Text("Login", style: AppTextStyles.buttonPrimary),
+      child: loading
+        ? const CircularProgressIndicator(color: Colors.white)
+        : Text("Login", style: AppTextStyles.buttonPrimary),
     );
   }
 }
