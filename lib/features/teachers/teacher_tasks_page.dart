@@ -42,7 +42,7 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                 buttonLabel: teacher.saving ? 'Saving...' : 'Create',
                 icon: Icons.add_task,
                 onPressed: teacher.saving
-                    ? null
+                    ? () {}
                     : () async {
                         final id = await teacher.createAssignment({
                           'title': 'New Assignment',
@@ -52,15 +52,20 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                  id == null ? 'Failed to create' : 'Draft created'),
+                                id == null
+                                    ? 'Failed to create'
+                                    : 'Draft created',
+                              ),
                             ),
                           );
                         }
                       },
               ),
               const SizedBox(height: 16),
-              Text('Drafts & Templates',
-                  style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
+              Text(
+                'Drafts & Templates',
+                style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+              ),
               const SizedBox(height: 8),
               ...(teacher.drafts.isNotEmpty
                       ? teacher.drafts
@@ -68,22 +73,26 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                           {
                             'title': 'Integers Check-in',
                             'lastEdited': 'Edited 2 hrs ago',
-                            'status': 'Awaiting publish'
+                            'status': 'Awaiting publish',
                           },
                           {
                             'title': 'Project Rubric',
                             'lastEdited': 'Edited yesterday',
-                            'status': 'Ready to assign'
-                          }
+                            'status': 'Ready to assign',
+                          },
                         ])
-                  .map((d) => _AssignmentDraftTile(
-                        title: d['title'] as String,
-                        lastEdited: d['lastEdited'] as String? ?? '',
-                        status: d['status'] as String? ?? '',
-                      )),
+                  .map(
+                    (d) => _AssignmentDraftTile(
+                      title: d['title'] as String,
+                      lastEdited: d['lastEdited'] as String? ?? '',
+                      status: d['status'] as String? ?? '',
+                    ),
+                  ),
               const SizedBox(height: 16),
-              Text('Completion Status',
-                  style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
+              Text(
+                'Completion Status',
+                style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+              ),
               const SizedBox(height: 8),
               StreamBuilder<List<Map<String, dynamic>>>(
                 stream: teacher.completionStats(),
@@ -111,8 +120,7 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                           (i) => _CompletionRow(
                             title: i['title'] as String? ?? 'Assignment',
                             submitted: i['submitted'] as String? ?? '',
-                            percent:
-                                (i['percent'] as num?)?.toDouble() ?? 0.0,
+                            percent: (i['percent'] as num?)?.toDouble() ?? 0.0,
                           ),
                         )
                         .toList(),
@@ -175,13 +183,20 @@ class _ActionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style:
-                        AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  title,
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle,
-                    style: AppTextStyles.body
-                        .copyWith(fontSize: 13, color: Colors.black54)),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
               ],
             ),
           ),
@@ -193,8 +208,10 @@ class _ActionCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text(buttonLabel,
-                style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
+            child: Text(
+              buttonLabel,
+              style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14),
+            ),
           ),
         ],
       ),
@@ -300,11 +317,16 @@ class _CompletionRow extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title,
-                    style:
-                        AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-                Text('${(percent * 100).round()}%',
-                    style: AppTextStyles.body.copyWith(color: Colors.teal[700])),
+                Text(
+                  title,
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  '${(percent * 100).round()}%',
+                  style: AppTextStyles.body.copyWith(color: Colors.teal[700]),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -316,9 +338,13 @@ class _CompletionRow extends StatelessWidget {
               backgroundColor: Colors.teal[50],
             ),
             const SizedBox(height: 6),
-            Text(submitted,
-                style: AppTextStyles.body
-                    .copyWith(fontSize: 13, color: Colors.black54)),
+            Text(
+              submitted,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 13,
+                color: Colors.black54,
+              ),
+            ),
           ],
         ),
       ),
