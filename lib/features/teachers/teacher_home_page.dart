@@ -1,72 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
+import 'package:lms_project/features/teachers/teacher_provider.dart';
+import 'package:provider/provider.dart';
 
-class TeacherHomePage extends StatelessWidget {
+class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});
 
   @override
+  State<TeacherHomePage> createState() => _TeacherHomePageState();
+}
+
+class _TeacherHomePageState extends State<TeacherHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => context.read<TeacherProvider>().loadDashboard());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final teacher = context.watch<TeacherProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
-        title: Text('Welcome back, Ms. Rao!', style: AppTextStyles.h1Teal),
+        title: Text('Welcome back, Teacher!', style: AppTextStyles.h1Teal),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _TeacherSearchBar(),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Recent Uploads',
-                children: const [
-                  _TeacherUploadTile(
-                    icon: Icons.description_outlined,
-                    title: 'Grade 7 • Algebra Quiz',
-                    subtitle: 'Uploaded 10 mins ago',
-                  ),
-                  _TeacherUploadTile(
-                    icon: Icons.picture_as_pdf_outlined,
-                    title: 'Geometry Slides',
-                    subtitle: 'Uploaded yesterday',
-                  ),
-                ],
+        child: teacher.loading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _TeacherSearchBar(),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Recent Uploads',
+                      children: (teacher.uploads.isNotEmpty
+                              ? teacher.uploads
+                              : [
+                                  {
+                                    'title': 'Grade 7 • Algebra Quiz',
+                                    'subtitle': 'Uploaded 10 mins ago'
+                                  },
+                                  {
+                                    'title': 'Geometry Slides',
+                                    'subtitle': 'Uploaded yesterday'
+                                  }
+                                ])
+                          .map(
+                            (u) => _TeacherUploadTile(
+                              icon: Icons.description_outlined,
+                              title: u['title'] as String,
+                              subtitle: u['subtitle'] as String? ?? '',
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Recent Submission %',
+                      children: const [
+                        _SubmissionStatTile(
+                          title: 'Fractions Practice',
+                          detail: '28 of 32 students',
+                          percent: 0.87,
+                        ),
+                        _SubmissionStatTile(
+                          title: 'Geometry Lab',
+                          detail: '24 of 32 students',
+                          percent: 0.75,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Today\'s Timetable',
+                      children: const [
+                        _ClassRow(time: '08:00', topic: 'Warm Up & Check-ins'),
+                        _ClassRow(time: '08:40', topic: 'Algebra: Word Problems'),
+                        _ClassRow(time: '09:20', topic: 'Group Project Feedback'),
+                        _ClassRow(time: '10:00', topic: 'Quiz Review'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Recent Submission %',
-                children: const [
-                  _SubmissionStatTile(
-                    title: 'Fractions Practice',
-                    detail: '28 of 32 students',
-                    percent: 0.87,
-                  ),
-                  _SubmissionStatTile(
-                    title: 'Geometry Lab',
-                    detail: '24 of 32 students',
-                    percent: 0.75,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Today\'s Timetable',
-                children: const [
-                  _ClassRow(time: '08:00', topic: 'Warm Up & Check-ins'),
-                  _ClassRow(time: '08:40', topic: 'Algebra: Word Problems'),
-                  _ClassRow(time: '09:20', topic: 'Group Project Feedback'),
-                  _ClassRow(time: '10:00', topic: 'Quiz Review'),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
       bottomNavigationBar: const TeacherBottomNavBar(currentIndex: 0),
     );
@@ -249,4 +274,3 @@ class _ClassRow extends StatelessWidget {
     );
   }
 }
-

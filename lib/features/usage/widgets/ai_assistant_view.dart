@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:lms_project/features/usage/gemini_service.dart';
+import 'package:lms_project/features/usage/gemini_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:markdown_widget/markdown_widget.dart';
+import 'package:provider/provider.dart';
 import 'package:typewritertext/typewritertext.dart';
 
 class AiAssistantView extends StatefulWidget {
@@ -29,7 +30,6 @@ class AiAssistantView extends StatefulWidget {
 class _AiAssistantViewState extends State<AiAssistantView> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final GeminiService _geminiService = GeminiService();
   final List<_ChatMessage> _messages = [];
 
   bool _isLoading = false;
@@ -65,6 +65,7 @@ class _AiAssistantViewState extends State<AiAssistantView> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isLoading) return;
+    final gemini = context.read<GeminiProvider>();
 
     setState(() {
       _messages.add(_ChatMessage(text: text, isUser: true));
@@ -88,7 +89,7 @@ class _AiAssistantViewState extends State<AiAssistantView> {
     });
 
     try {
-      await for (final chunk in _geminiService.generateStream(text)) {
+      await for (final chunk in gemini.stream(text)) {
         aiResponse += chunk;
         setState(() {
           _messages[aiMessageIndex] = _ChatMessage(
@@ -352,4 +353,3 @@ class _ChatComposerState extends State<_ChatComposer> {
     );
   }
 }
-

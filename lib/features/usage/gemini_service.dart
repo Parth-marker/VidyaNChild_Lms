@@ -10,10 +10,11 @@ class GeminiService {
 
   void _initialize() {
     if (_initialized) return;
-    
-    final apiKey = "AIzaSyDoY91IKMwZ7L7ObzNBO2ZC_ps-HWboyBk";
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY not found in environment variables');
+
+    const apiKey =
+        String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+    if (apiKey.isEmpty) {
+      throw Exception('GEMINI_API_KEY not found; pass via --dart-define');
     }
 
     _model = GenerativeModel(

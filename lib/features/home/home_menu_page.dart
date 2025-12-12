@@ -1,13 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lms_project/features/home/home_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
 import 'package:lms_project/features/home/search_results_page.dart';
+import 'package:provider/provider.dart';
 
-class HomeMenuPage extends StatelessWidget {
+class HomeMenuPage extends StatefulWidget {
   const HomeMenuPage({super.key});
 
   @override
+  State<HomeMenuPage> createState() => _HomeMenuPageState();
+}
+
+class _HomeMenuPageState extends State<HomeMenuPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(
+      () => context.read<HomeProvider>().loadHome(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final home = context.watch<HomeProvider>();
+    final userName = FirebaseAuth.instance.currentUser?.email ?? 'Student';
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
       appBar: AppBar(
@@ -18,49 +37,100 @@ class HomeMenuPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text('Welcome back, Parth!', style: AppTextStyles.h1Teal),
+        title: Text('Welcome back, $userName!', style: AppTextStyles.h1Teal),
         centerTitle: false,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SearchBar(onSearchTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SearchResultsPage()),
-                );
-              }),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Today\'s Events',
-                children: const [
-                  _EventTile(icon: Icons.description_outlined, title: 'Math Worksheet', subtitle: 'Due today'),
-                  _EventTile(icon: Icons.picture_as_pdf_outlined, title: 'Lesson Notes', subtitle: 'Due today'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Where you left off',
-                children: const [
-                  _ProgressPreview(title: 'Fractions & Decimals', subtitle: 'Math • Page 36 of 90'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _SectionCard(
-                title: 'Today\'s Timetable:',
-                children: const [
-                  _ClassRow(time: '08:00', topic: 'Algebra: Linear Equations'),
-                  _ClassRow(time: '08:40', topic: 'Fractions & Decimals'),
-                  _ClassRow(time: '09:20', topic: 'Geometry: Triangles'),
-                  _ClassRow(time: '10:00', topic: 'Number Patterns'),
-                  _ClassRow(time: '10:40', topic: 'Quick Practice & Recap'),
-                ],
-              ),
-            ],
-          ),
-        ),
+        child: home.loading
+            ? const Center(child: CircularProgressIndicator())
+            : home.error != null
+                ? Center(child: Text(home.error!, style: AppTextStyles.body))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SearchBar(onSearchTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const SearchResultsPage()),
+                          );
+                        }),
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: 'Today\'s Events',
+                          children: (home.events.isNotEmpty
+                                  ? home.events
+                                  : [
+                                      {
+                                        'title': 'Math Worksheet',
+                                        'subtitle': 'Due today'
+                                      },
+                                      {
+                                        'title': 'Lesson Notes',
+                                        'subtitle': 'Due today'
+                                      }
+                                    ])
+                              .map((e) => _EventTile(
+                                    icon: Icons.description_outlined,
+                                    title: e['title'] as String,
+                                    subtitle: e['subtitle'] as String? ?? '',
+                                  ))
+                              .toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: 'Where you left off',
+                          children: [
+                            if (home.progress.isNotEmpty)
+                              _ProgressPreview(
+                                title: home.progress.first['title'] as String,
+                                subtitle: home.progress.first['subtitle']
+                                        as String? ??
+                                    '',
+                              )
+                            else
+                              const _ProgressPreview(
+                                title: 'Fractions & Decimals',
+                                subtitle: 'Math • Page 36 of 90',
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: 'Today\'s Timetable:',
+                          children: (home.timetable.isNotEmpty
+                                  ? home.timetable
+                                  : [
+                                      {
+                                        'time': '08:00',
+                                        'topic': 'Algebra: Linear Equations'
+                                      },
+                                      {
+                                        'time': '08:40',
+                                        'topic': 'Fractions & Decimals'
+                                      },
+                                      {
+                                        'time': '09:20',
+                                        'topic': 'Geometry: Triangles'
+                                      },
+                                      {
+                                        'time': '10:00',
+                                        'topic': 'Number Patterns'
+                                      },
+                                      {
+                                        'time': '10:40',
+                                        'topic': 'Quick Practice & Recap'
+                                      },
+                                    ])
+                              .map((c) => _ClassRow(
+                                  time: c['time'] as String,
+                                  topic: c['topic'] as String))
+                              .toList(),
+                        ),
+                      ],
+                    ),
+                  ),
       ),
       bottomNavigationBar: const AppBottomNavBar(currentIndex: 0),
     );
@@ -209,5 +279,4 @@ class _ClassRow extends StatelessWidget {
     );
   }
 }
-
 

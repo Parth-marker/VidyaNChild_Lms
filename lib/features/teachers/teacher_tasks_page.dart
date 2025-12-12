@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
+import 'package:lms_project/features/teachers/teacher_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
+import 'package:provider/provider.dart';
 
-class TeacherTasksPage extends StatelessWidget {
+class TeacherTasksPage extends StatefulWidget {
   const TeacherTasksPage({super.key});
 
   @override
+  State<TeacherTasksPage> createState() => _TeacherTasksPageState();
+}
+
+class _TeacherTasksPageState extends State<TeacherTasksPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => context.read<TeacherProvider>().loadDashboard());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final teacher = context.watch<TeacherProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
       appBar: AppBar(
@@ -24,42 +39,85 @@ class TeacherTasksPage extends StatelessWidget {
               _ActionCard(
                 title: 'Create New Assignment',
                 subtitle: 'Design a fresh worksheet, quiz, or project brief.',
-                buttonLabel: 'Create',
+                buttonLabel: teacher.saving ? 'Saving...' : 'Create',
                 icon: Icons.add_task,
-                onPressed: () {},
+                onPressed: teacher.saving
+                    ? null
+                    : () async {
+                        final id = await teacher.createAssignment({
+                          'title': 'New Assignment',
+                          'status': 'draft',
+                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  id == null ? 'Failed to create' : 'Draft created'),
+                            ),
+                          );
+                        }
+                      },
               ),
               const SizedBox(height: 16),
               Text('Drafts & Templates',
                   style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
               const SizedBox(height: 8),
-              const _AssignmentDraftTile(
-                title: 'Integers Check-in',
-                lastEdited: 'Edited 2 hrs ago',
-                status: 'Awaiting publish',
-              ),
-              const _AssignmentDraftTile(
-                title: 'Project Rubric',
-                lastEdited: 'Edited yesterday',
-                status: 'Ready to assign',
-              ),
+              ...(teacher.drafts.isNotEmpty
+                      ? teacher.drafts
+                      : [
+                          {
+                            'title': 'Integers Check-in',
+                            'lastEdited': 'Edited 2 hrs ago',
+                            'status': 'Awaiting publish'
+                          },
+                          {
+                            'title': 'Project Rubric',
+                            'lastEdited': 'Edited yesterday',
+                            'status': 'Ready to assign'
+                          }
+                        ])
+                  .map((d) => _AssignmentDraftTile(
+                        title: d['title'] as String,
+                        lastEdited: d['lastEdited'] as String? ?? '',
+                        status: d['status'] as String? ?? '',
+                      )),
               const SizedBox(height: 16),
               Text('Completion Status',
                   style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
               const SizedBox(height: 8),
-              const _CompletionRow(
-                title: 'Fractions Practice Set',
-                submitted: '28 / 32 turned in',
-                percent: 0.87,
-              ),
-              const _CompletionRow(
-                title: 'Geometry Lab Report',
-                submitted: '24 / 32 turned in',
-                percent: 0.75,
-              ),
-              const _CompletionRow(
-                title: 'Weekly Reflection',
-                submitted: '19 / 32 turned in',
-                percent: 0.59,
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: teacher.completionStats(),
+                builder: (context, snapshot) {
+                  final items = snapshot.data ?? [];
+                  if (items.isEmpty) {
+                    return Column(
+                      children: const [
+                        _CompletionRow(
+                          title: 'Fractions Practice Set',
+                          submitted: '28 / 32 turned in',
+                          percent: 0.87,
+                        ),
+                        _CompletionRow(
+                          title: 'Geometry Lab Report',
+                          submitted: '24 / 32 turned in',
+                          percent: 0.75,
+                        ),
+                      ],
+                    );
+                  }
+                  return Column(
+                    children: items
+                        .map(
+                          (i) => _CompletionRow(
+                            title: i['title'] as String? ?? 'Assignment',
+                            submitted: i['submitted'] as String? ?? '',
+                            percent:
+                                (i['percent'] as num?)?.toDouble() ?? 0.0,
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               ),
             ],
           ),
@@ -267,4 +325,3 @@ class _CompletionRow extends StatelessWidget {
     );
   }
 }
-

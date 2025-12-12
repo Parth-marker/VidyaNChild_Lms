@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
+import 'package:lms_project/features/teachers/teacher_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
+import 'package:provider/provider.dart';
 
-class TeacherAnalyticsPage extends StatelessWidget {
+class TeacherAnalyticsPage extends StatefulWidget {
   const TeacherAnalyticsPage({super.key});
 
   @override
+  State<TeacherAnalyticsPage> createState() => _TeacherAnalyticsPageState();
+}
+
+class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => context.read<TeacherProvider>().loadDashboard());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final teacher = context.watch<TeacherProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
       appBar: AppBar(
@@ -24,7 +39,7 @@ class TeacherAnalyticsPage extends StatelessWidget {
               const SizedBox(height: 16),
               const _PerformanceCard(),
               const SizedBox(height: 16),
-              const _TrendGrid(),
+              _TrendGrid(items: teacher.analytics),
             ],
           ),
         ),
@@ -157,11 +172,13 @@ class _PerformanceCard extends StatelessWidget {
 }
 
 class _TrendGrid extends StatelessWidget {
-  const _TrendGrid();
+  const _TrendGrid({required this.items});
+
+  final List<Map<String, dynamic>> items;
 
   @override
   Widget build(BuildContext context) {
-    final items = [
+    final defaults = [
       {
         'label': 'Homework',
         'value': '92%',
@@ -188,10 +205,12 @@ class _TrendGrid extends StatelessWidget {
       },
     ];
 
+    final rows = items.isNotEmpty ? items : defaults;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
+      itemCount: rows.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 12,
@@ -199,7 +218,7 @@ class _TrendGrid extends StatelessWidget {
         childAspectRatio: 1.4,
       ),
       itemBuilder: (context, index) {
-        final item = items[index];
+        final item = rows[index];
         return Container(
           decoration: BoxDecoration(
             color: item['color'] as Color?,
@@ -231,4 +250,3 @@ class _TrendGrid extends StatelessWidget {
     );
   }
 }
-

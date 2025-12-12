@@ -1,12 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
+import 'package:lms_project/features/home/search_provider.dart';
+import 'package:provider/provider.dart';
 
-class SearchResultsPage extends StatelessWidget {
+class SearchResultsPage extends StatefulWidget {
   const SearchResultsPage({super.key});
 
   @override
+  State<SearchResultsPage> createState() => _SearchResultsPageState();
+}
+
+class _SearchResultsPageState extends State<SearchResultsPage> {
+  late final TextEditingController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    final search = context.read<SearchProvider>();
+    controller = TextEditingController(text: search.query);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final search = context.watch<SearchProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
       appBar: AppBar(
@@ -23,8 +47,9 @@ class SearchResultsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
+                controller: controller,
                 decoration: InputDecoration(
-                  hintText: 'Math',
+                  hintText: 'Search topics or resources',
                   prefixIcon: const Icon(Icons.search, color: Colors.teal),
                   filled: true,
                   fillColor: Colors.white,
@@ -33,22 +58,43 @@ class SearchResultsPage extends StatelessWidget {
                     borderSide: BorderSide.none,
                   ),
                 ),
+                onChanged: search.updateQuery,
               ),
               const SizedBox(height: 16),
               Text('Top Results', style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
               const SizedBox(height: 8),
               Expanded(
-                child: ListView(
-                  children: const [
-                    _ResultCard(title: 'Algebra Basics', subtitle: 'Course'),
-                    _ResultCard(title: 'Fractions Drill - Week 5', subtitle: 'Worksheet'),
-                    _ResultCard(title: 'Chapter 3 Quiz - Decimals', subtitle: 'Quiz'),
-                    SizedBox(height: 16),
-                    _SectionHeader(text: 'All Results'),
-                    _ResultCard(title: 'Geometry: Angles Practice', subtitle: 'Worksheet'),
-                    _ResultCard(title: 'Number Patterns - Challenge', subtitle: 'Activity'),
-                    _ResultCard(title: 'Algebra Review Set', subtitle: 'Worksheet'),
-                  ],
+                child: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: search.results,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final docs = snapshot.data ?? [];
+                    if (docs.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'No results yet. Try searching for "fractions" or "algebra".',
+                          style: AppTextStyles.body,
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+                    return ListView(
+                      children: [
+                        ...docs.take(3).map((d) => _ResultCard(
+                              title: d['title'] as String? ?? 'Resource',
+                              subtitle: d['type'] as String? ?? '',
+                            )),
+                        const SizedBox(height: 16),
+                        const _SectionHeader(text: 'All Results'),
+                        ...docs.skip(3).map((d) => _ResultCard(
+                              title: d['title'] as String? ?? 'Resource',
+                              subtitle: d['type'] as String? ?? '',
+                            )),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -96,5 +142,3 @@ class _SectionHeader extends StatelessWidget {
         child: Text(text, style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
       );
 }
-
-
