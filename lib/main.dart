@@ -36,3 +36,5 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+//obscure text (toggle), provider updates, acct type, sign out f + button, content,

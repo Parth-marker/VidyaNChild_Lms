@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lms_project/features/auth/login_page.dart';
-import 'package:lms_project/features/home/home_menu_page.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:lms_project/features/auth/provider/auth_provider.dart';
@@ -65,31 +63,44 @@ class _SignUpFormState extends State<_SignUpForm> {
   final confirmPasswordController = TextEditingController();
 
   bool loading = false;
+  bool isStudent = true; // true for student, false for teacher
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _InputField(controller: nameController, icon: Icons.person_outline, hintText: "Full Name", obscure: true),
+        _InputField(controller: nameController, icon: Icons.person_outline, hintText: "Full Name", obscure: false),
         const SizedBox(height: 20),
-        _InputField(controller: emailController, icon: Icons.email_outlined, hintText: "Email", obscure: true),
+        _InputField(controller: emailController, icon: Icons.email_outlined, hintText: "Email", obscure: false),
         const SizedBox(height: 20),
-        _InputField(controller: passwordController, icon: Icons.lock_outline, hintText: "Password", obscure: true),
+        _InputField(controller: passwordController, icon: Icons.lock_outline, hintText: "Password", obscure: false),
         const SizedBox(height: 20),
-        _InputField(controller: confirmPasswordController, icon: Icons.lock_person_outlined, hintText: "Confirm Password", obscure: true),
+        _InputField(controller: confirmPasswordController, icon: Icons.lock_person_outlined, hintText: "Confirm Password", obscure: false),
+        const SizedBox(height: 20),
+        _AccountTypeToggle(
+          isStudent: isStudent,
+          onChanged: (value) {
+            setState(() {
+              isStudent = value;
+            });
+          },
+        ),
         const SizedBox(height: 30),
        Consumer<AuthProvider>(
       builder: (context, provider, _) {
         return ElevatedButton(
           onPressed: () async {
-            final res = await provider.signUp(emailController.text, passwordController.text);
+            final accountType = isStudent ? 'student' : 'teacher';
+            final res = await provider.signUp(nameController.text, emailController.text, passwordController.text, accountType);
 
             if(context.mounted){
               if(res){
-              Navigator.push(context, MaterialPageRoute(builder: (context)=>HomeMenuPage()));
-            }else{
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Something went error")));
-            }
+                // Pop all routes back to root (AuthWrapper) which will handle routing based on account type
+                // The auth state change will trigger AuthWrapper to rebuild and route correctly
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }else{
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Something went error")));
+              }
             }
             
           },
@@ -139,6 +150,72 @@ class _InputField extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
         ),
+      ),
+    );
+  }
+}
+
+class _AccountTypeToggle extends StatelessWidget {
+  final bool isStudent;
+  final ValueChanged<bool> onChanged;
+
+  const _AccountTypeToggle({
+    required this.isStudent,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.purple[300]!, width: 2),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: isStudent ? Colors.purple[300] : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  'Student',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.body.copyWith(
+                    color: isStudent ? Colors.white : Colors.purple[300],
+                    fontWeight: isStudent ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(false),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: !isStudent ? Colors.purple[300] : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  'Teacher',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.body.copyWith(
+                    color: !isStudent ? Colors.white : Colors.purple[300],
+                    fontWeight: !isStudent ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

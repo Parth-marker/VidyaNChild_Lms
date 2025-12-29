@@ -3,6 +3,8 @@ import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
+import 'package:lms_project/features/auth/login_page.dart';
+import 'package:lms_project/features/auth/provider/auth_provider.dart';
 
 class TeacherAnalyticsPage extends StatefulWidget {
   const TeacherAnalyticsPage({super.key});
@@ -88,14 +90,23 @@ class _TeacherAccountCard extends StatelessWidget {
             ),
           ),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () async {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
+                );
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.purple[300],
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text('Card',
+            child: Text('Log out',
                 style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
           ),
         ],

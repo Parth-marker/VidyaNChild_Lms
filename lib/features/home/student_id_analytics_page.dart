@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
 import 'package:lms_project/features/usage/ai_study_plan_page.dart';
+import 'package:lms_project/features/auth/login_page.dart';
+import 'package:provider/provider.dart';
+import 'package:lms_project/features/auth/provider/auth_provider.dart';
 
 class StudentIdAnalyticsPage extends StatelessWidget {
   const StudentIdAnalyticsPage({super.key});
@@ -58,9 +61,18 @@ class _ProfileHeader extends StatelessWidget {
             ]),
           ),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () async {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
+                );
+              }
+            },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[300], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: Text('Card', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
+            child: Text('Log out', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
           ),
         ],
       ),

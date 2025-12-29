@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
                   controller: emailController,
                   hintText: 'Email',
                   icon: Icons.email_outlined,
-                  obscureText: true,
+                  obscureText: false,
                 ),
                 const SizedBox(height: 20),
 
@@ -47,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
                   controller: passwordController,
                   hintText: 'Password',
                   icon: Icons.lock_outline,
-                  obscureText: true,
+                  obscureText: false,
                 ),
                 const SizedBox(height: 30),
 
