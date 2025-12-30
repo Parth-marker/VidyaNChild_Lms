@@ -34,7 +34,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   //Login w/ email and password
-  Future<String?> login(String email, String password) async {
+  Future<bool> login(String email, String password) async {
     try {
       await _auth.signInWithEmailAndPassword(
         email: email, 
@@ -42,10 +42,10 @@ class AuthProvider extends ChangeNotifier {
       );
       // Notify listeners to ensure UI updates immediately
       notifyListeners();
-      return null;
+      return true;
     }
     on FirebaseAuthException catch (e) {
-      return e.message;
+      return false;
     }
   }
 

@@ -56,17 +56,21 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () async {
                     setState(() => loading = true);
 
-                    final error = await authProvider.login(
+                    final res = await authProvider.login(
                       emailController.text.trim(),
                       passwordController.text.trim(),
                     );
                     setState(() => loading = false);
 
-                    if (error != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(error)),
-                      );
-                    }
+                    if(context.mounted){
+              if(res){
+                // Pop all routes back to root (AuthWrapper) which will handle routing based on account type
+                // The auth state change will trigger AuthWrapper to rebuild and route correctly
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }else{
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Something went error")));
+              }
+            }
                   }
                 ),
                 const SizedBox(height: 20),
