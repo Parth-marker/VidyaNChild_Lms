@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
+import 'package:lms_project/features/games/quick_math_challenge_page.dart';
 
 class MathPuzzlesPage extends StatelessWidget {
   const MathPuzzlesPage({super.key});
@@ -22,9 +23,16 @@ class MathPuzzlesPage extends StatelessWidget {
           children: [
             Text('Choose a game', style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
             const SizedBox(height: 12),
-            const _PuzzleCard(
+            _PuzzleCard(
               title: 'Quick Math Challenge',
               description: 'Test your skills with a series of quick math problems. Score points for each correct answer.',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const QuickMathChallengePage(),
+                  ),
+                );
+              },
             ),
             const _PuzzleCard(
               title: 'Number Sequence',
@@ -57,7 +65,8 @@ class MathPuzzlesPage extends StatelessWidget {
 class _PuzzleCard extends StatelessWidget {
   final String title;
   final String description;
-  const _PuzzleCard({required this.title, required this.description});
+  final VoidCallback? onTap;
+  const _PuzzleCard({required this.title, required this.description, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +88,7 @@ class _PuzzleCard extends StatelessWidget {
         title: Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Text(description, style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
         trailing: ElevatedButton(
-          onPressed: () {},
+          onPressed: onTap,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[300], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           child: Text('Play', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
         ),

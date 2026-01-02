@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
 import 'package:lms_project/features/home/search_provider.dart';
+import 'package:lms_project/features/usage/digitized_assignments_page.dart';
 import 'package:provider/provider.dart';
 
 class SearchResultsPage extends StatefulWidget {
@@ -74,24 +75,53 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                     if (docs.isEmpty) {
                       return Center(
                         child: Text(
-                          'No results yet. Try searching for "fractions" or "algebra".',
+                          'No results yet. Try searching for "integers", "fractions", or "data handling".',
                           style: AppTextStyles.body,
                           textAlign: TextAlign.center,
                         ),
                       );
                     }
+                    
+                    // Separate assignments and other results
+                    final assignments = docs.where((d) => d['category'] == 'assignment' || d['category'] == 'submission').toList();
+                    final otherResults = docs.where((d) => d['category'] != 'assignment' && d['category'] != 'submission').toList();
+                    
                     return ListView(
                       children: [
-                        ...docs.take(3).map((d) => _ResultCard(
-                              title: d['title'] as String? ?? 'Resource',
-                              subtitle: d['type'] as String? ?? '',
-                            )),
-                        const SizedBox(height: 16),
-                        const _SectionHeader(text: 'All Results'),
-                        ...docs.skip(3).map((d) => _ResultCard(
-                              title: d['title'] as String? ?? 'Resource',
-                              subtitle: d['type'] as String? ?? '',
-                            )),
+                        if (assignments.isNotEmpty) ...[
+                          const _SectionHeader(text: 'Assignments'),
+                          ...assignments.map((d) => _ResultCard(
+                                title: d['title'] as String? ?? 'Resource',
+                                subtitle: d['type'] as String? ?? '',
+                                category: d['category'] as String?,
+                                onTap: () {
+                                  final category = d['category'] as String?;
+                                  final title = d['title'] as String? ?? '';
+                                  if (category == 'assignment') {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => DigitizedAssignmentsPage(expandAssignment: title),
+                                      ),
+                                    );
+                                  } else if (category == 'submission') {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const DigitizedAssignmentsPage(),
+                                      ),
+                                    );
+                                  }
+                                },
+                              )),
+                          if (otherResults.isNotEmpty) const SizedBox(height: 16),
+                        ],
+                        if (otherResults.isNotEmpty) ...[
+                          if (assignments.isEmpty) const SizedBox(height: 0),
+                          const _SectionHeader(text: 'Other Results'),
+                          ...otherResults.map((d) => _ResultCard(
+                                title: d['title'] as String? ?? 'Resource',
+                                subtitle: d['type'] as String? ?? '',
+                              )),
+                        ],
                       ],
                     );
                   },
@@ -109,7 +139,9 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
 class _ResultCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  const _ResultCard({required this.title, required this.subtitle});
+  final String? category;
+  final VoidCallback? onTap;
+  const _ResultCard({required this.title, required this.subtitle, this.category, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -123,11 +155,23 @@ class _ResultCard extends StatelessWidget {
         ],
       ),
       child: ListTile(
-        leading: CircleAvatar(backgroundColor: Colors.purple[50], child: const Icon(Icons.bookmark_outline, color: Colors.purple)),
+        leading: CircleAvatar(
+          backgroundColor: category == 'assignment' || category == 'submission' 
+              ? Colors.teal[50] 
+              : Colors.purple[50], 
+          child: Icon(
+            category == 'assignment' || category == 'submission'
+                ? Icons.description_outlined
+                : Icons.bookmark_outline,
+            color: category == 'assignment' || category == 'submission'
+                ? Colors.teal
+                : Colors.purple,
+          ),
+        ),
         title: Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle, style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
         trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () {},
+        onTap: onTap ?? () {},
       ),
     );
   }
