@@ -287,13 +287,6 @@ class _ChatComposer extends StatefulWidget {
 }
 
 class _ChatComposerState extends State<_ChatComposer> {
-  bool _obscureText = false;
-
-  void _toggleObscureText() {
-    setState(() {
-      _obscureText = !_obscureText;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -306,7 +299,6 @@ class _ChatComposerState extends State<_ChatComposer> {
             child: TextField(
               controller: widget.controller,
               enabled: !widget.isLoading,
-              obscureText: _obscureText,
               decoration: InputDecoration(
                 hintText: widget.hintText,
                 filled: true,
@@ -318,13 +310,6 @@ class _ChatComposerState extends State<_ChatComposer> {
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
-                ),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureText ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey[600],
-                  ),
-                  onPressed: _toggleObscureText,
                 ),
               ),
               onSubmitted: (_) => widget.onSend(),

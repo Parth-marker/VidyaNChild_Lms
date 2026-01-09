@@ -45,6 +45,12 @@ class SearchProvider extends ChangeNotifier {
       'category': 'submission',
       'keywords': ['angles', 'angle', 'worksheet', 'geometry', 'submission', 'math'],
     },
+    {
+      'title': 'Syllabus resources',
+      'type': 'Submission',
+      'category': 'submission',
+      'keywords': ['syllabus', 'resources', 'revision', 'math'],
+    },
   ];
 
   Stream<List<Map<String, dynamic>>> get results {

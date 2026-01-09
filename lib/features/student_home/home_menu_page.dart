@@ -25,7 +25,7 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
   @override
   Widget build(BuildContext context) {
     final home = context.watch<HomeProvider>();
-    final userName = FirebaseAuth.instance.currentUser?.email ?? 'Student';
+    final userName = FirebaseAuth.instance.currentUser?.displayName ?? 'Student';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
@@ -37,7 +37,7 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text('Welcome back, $userName!', style: AppTextStyles.h1Teal),
+        title: Text('Welcome back!', style: AppTextStyles.h1Teal),
         centerTitle: false,
       ),
       body: SafeArea(

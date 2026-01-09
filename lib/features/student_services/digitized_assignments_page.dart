@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
+
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 
 class DigitizedAssignmentsPage extends StatelessWidget {
   final String? expandAssignment;
@@ -27,6 +32,7 @@ class DigitizedAssignmentsPage extends StatelessWidget {
             _AssignmentTile(title: 'Integers', due: '2026-05-15', initiallyExpanded: expandAssignment == 'Integers'),
             _AssignmentTile(title: 'Fractions and Decimals', due: '2026-05-15', initiallyExpanded: expandAssignment == 'Fractions and Decimals'),
             _AssignmentTile(title: 'Data Handling', due: '2026-05-15', initiallyExpanded: expandAssignment == 'Data Handling'),
+            _AssignmentTile(title: 'Syllabus resources', due: 'N/A', initiallyExpanded: expandAssignment == 'Syllabus resources'),
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
@@ -39,11 +45,22 @@ class DigitizedAssignmentsPage extends StatelessWidget {
                   const Icon(Icons.insights, color: Colors.teal),
                   const SizedBox(width: 10),
                   Expanded(child: Text('Learning Summary', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600))),
+
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                        final byteData = await rootBundle.load('assets/files/Sample.docx');
+                        // Get temporary directory
+                        final tempDir = await getTemporaryDirectory();
+                        final file = File('${tempDir.path}/Sample.docx');
+                        // Write file
+                        await file.writeAsBytes(byteData.buffer.asUint8List());
+                        // Open file using default app (Word, Google Docs, etc.)
+                        await OpenFile.open(file.path);
+                    },
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[300], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     child: Text('Open', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
                   ),
+
                 ],
               ),
             ),
@@ -99,7 +116,8 @@ class _AssignmentTileState extends State<_AssignmentTile> {
   Widget build(BuildContext context) {
     final bool hasWorksheet = widget.title == 'Integers' || 
                               widget.title == 'Fractions and Decimals' || 
-                              widget.title == 'Data Handling';
+                              widget.title == 'Data Handling' ||
+                              widget.title == 'Syllabus resources';
     
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -144,6 +162,8 @@ class _WorksheetContent extends StatelessWidget {
       return 'Hello students. Please complete this worksheet on fractions and decimals:';
     } else if (assignmentTitle == 'Data Handling') {
       return 'Hello students. Please complete this worksheet on data handling:';
+    } else if (assignmentTitle == 'Syllabus resources') {
+      return 'Hello students, please find your grade 7 mathematics syllabus and revision notes:';
     }
     return 'Hello students. Please complete this worksheet:';
   }
@@ -336,8 +356,11 @@ class _WorksheetContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Worksheet questions
-          ..._getQuestions(),
+          // Show syllabus table for Syllabus resources, otherwise show questions
+          if (assignmentTitle == 'Syllabus resources')
+            _SyllabusTable()
+          else
+            ..._getQuestions(),
         ],
       ),
     );
@@ -384,6 +407,108 @@ class _QuestionWidget extends StatelessWidget {
                 ),
               )),
         ],
+      ),
+    );
+  }
+}
+
+class _SyllabusTable extends StatelessWidget {
+  const _SyllabusTable();
+
+  @override
+  Widget build(BuildContext context) {
+    final syllabusData = [
+      {'chapterNo': '1', 'chapterName': 'Integers', 'keyTopics': 'Number line representation, addition and subtraction rules, properties (closure, commutative, associative, identity, inverse), multiplication and division of integers, word problems'},
+      {'chapterNo': '2', 'chapterName': 'Fractions and Decimals', 'keyTopics': 'Types of fractions, equivalent and simplest form, operations on fractions, decimal representation, terminating and non-terminating decimals, operations on decimals, word problems'},
+      {'chapterNo': '3', 'chapterName': 'Data Handling', 'keyTopics': 'Collection and organization of data, mean, median, mode, bar graphs, pictographs, interpretation of data, introduction to probability'},
+      {'chapterNo': '4', 'chapterName': 'Simple Equations', 'keyTopics': 'Algebraic expressions, formation of equations, solving one-step and two-step equations, verification, word problems'},
+      {'chapterNo': '5', 'chapterName': 'Lines and Angles', 'keyTopics': 'Basic terms, types of angles, angle pairs, parallel lines and transversals, corresponding and alternate angles'},
+      {'chapterNo': '6', 'chapterName': 'The Triangle and Its Properties', 'keyTopics': 'Types of triangles, medians, altitudes, angle sum property, exterior angle property, Pythagoras property (introduction)'},
+      {'chapterNo': '7', 'chapterName': 'Congruence of Triangles', 'keyTopics': 'Congruent figures, triangle congruence criteria (SSS, SAS, ASA, RHS), applications'},
+      {'chapterNo': '8', 'chapterName': 'Comparing Quantities', 'keyTopics': 'Ratio and proportion, percentages, increase and decrease percentage, profit and loss, simple interest, real-life applications'},
+      {'chapterNo': '9', 'chapterName': 'Rational Numbers', 'keyTopics': 'Definition, number line representation, standard form, comparison, operations, properties of rational numbers'},
+      {'chapterNo': '10', 'chapterName': 'Practical Geometry', 'keyTopics': 'Construction of triangles (SSS, SAS, ASA), use of ruler and compass'},
+      {'chapterNo': '11', 'chapterName': 'Perimeter and Area', 'keyTopics': 'Perimeter of square, rectangle and triangle, area of square and rectangle, word problems'},
+      {'chapterNo': '12', 'chapterName': 'Algebraic Expressions', 'keyTopics': 'Variables, constants, terms and coefficients, like and unlike terms, addition and subtraction, evaluation'},
+      {'chapterNo': '13', 'chapterName': 'Exponents and Powers', 'keyTopics': 'Laws of exponents, powers of 10, expressing large numbers, simplification'},
+      {'chapterNo': '14', 'chapterName': 'Symmetry', 'keyTopics': 'Line symmetry, symmetrical figures, lines of symmetry, introduction to rotational symmetry'},
+      {'chapterNo': '15', 'chapterName': 'Visualising Solid Shapes', 'keyTopics': '3D shapes, faces, edges and vertices, nets, top, front and side views, polyhedrons'},
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!, width: 1),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Table(
+          border: TableBorder.all(color: Colors.grey[300]!, width: 1),
+          columnWidths: {
+            0: const FixedColumnWidth(250),
+            1: const FixedColumnWidth(600),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.top,
+          children: [
+            // Header row
+            TableRow(
+              decoration: BoxDecoration(color: Colors.teal[100]),
+              children: [
+                _TableCell(
+                  text: 'Chapter Name',
+                  isHeader: true,
+                ),
+                _TableCell(
+                  text: 'Key Topics covered',
+                  isHeader: true,
+                ),
+              ],
+            ),
+            // Data rows
+            ...syllabusData.map((data) => TableRow(
+              decoration: BoxDecoration(color: Colors.white),
+              children: [
+                _TableCell(
+                  text: '${data['chapterNo']}. ${data['chapterName']}',
+                  isHeader: false,
+                ),
+                _TableCell(
+                  text: data['keyTopics']!,
+                  isHeader: false,
+                ),
+              ],
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TableCell extends StatelessWidget {
+  final String text;
+  final bool isHeader;
+
+  const _TableCell({
+    required this.text,
+    required this.isHeader,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 50),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+      alignment: isHeader && text == 'Chapter No.' ? Alignment.center : Alignment.topLeft,
+      child: Text(
+        text,
+        style: AppTextStyles.body.copyWith(
+          fontWeight: isHeader ? FontWeight.w700 : FontWeight.normal,
+          fontSize: isHeader ? 14 : 13,
+          color: isHeader ? Colors.teal[900] : Colors.black87,
+        ),
+        textAlign: isHeader && text == 'Chapter No.' ? TextAlign.center : TextAlign.left,
       ),
     );
   }

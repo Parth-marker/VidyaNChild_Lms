@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
@@ -29,9 +30,9 @@ class StudentIdAnalyticsPage extends StatelessWidget {
               _ScoreGrid(),
               const SizedBox(height: 16),
               _AlertCard(
-                title: 'Mathematics',
+                title: 'Decimals',
                 message:
-                    'Math scores are trending down. Focus on Algebra and Geometry concepts is recommended to build a stronger foundation.',
+                    'Unit 2 scores are trending down. Focus on decimal concepts and data handlingis recommended to build a stronger foundation.',
               ),
             ],
           ),
@@ -56,8 +57,8 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Parth Verma', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-              Text('Grade 7, Section A', style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
+              Text(FirebaseAuth.instance.currentUser?.displayName ?? 'Student', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+              Text(FirebaseAuth.instance.currentUser?.email ?? 'Student', style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
             ]),
           ),
           ElevatedButton(
@@ -84,10 +85,10 @@ class _ScoreGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<Map<String, String>> items = [
-      {'subject': 'Accuracy', 'score': '92%'},
-      {'subject': 'Speed', 'score': '85%'},
-      {'subject': 'Mastery', 'score': '75%'},
-      {'subject': 'Streak', 'score': '7 days'},
+      {'subject': 'Integers', 'score': '92%'},
+      {'subject': 'Fractions', 'score': '85%'},
+      {'subject': 'Data Handling', 'score': '75%'},
+      {'subject': 'Decimals Drill', 'score': '70%'},
     ];
     return GridView.builder(
       shrinkWrap: true,
