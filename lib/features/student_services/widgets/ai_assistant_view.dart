@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lms_project/features/usage/gemini_provider.dart';
+import 'package:lms_project/features/student_services/gemini_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:provider/provider.dart';

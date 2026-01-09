@@ -2,12 +2,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:lms_project/features/auth/provider/auth_provider.dart';
-import 'package:lms_project/features/auth/provider/auth_wrapper.dart';
-import 'package:lms_project/features/home/home_provider.dart';
-import 'package:lms_project/features/home/search_provider.dart';
+import 'package:lms_project/features/auth/auth_provider/auth_provider.dart';
+import 'package:lms_project/features/auth/auth_provider/auth_wrapper.dart';
+import 'package:lms_project/features/student_home/home_provider.dart';
+import 'package:lms_project/features/student_home/search_provider.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
-import 'package:lms_project/features/usage/gemini_provider.dart';
+import 'package:lms_project/features/student_services/gemini_provider.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
-import 'package:lms_project/features/usage/widgets/ai_assistant_view.dart';
+import 'package:lms_project/features/student_services/widgets/ai_assistant_view.dart';
 
 class AIStudyAssistantPage extends StatelessWidget {
   const AIStudyAssistantPage({super.key});

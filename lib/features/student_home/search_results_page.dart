@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
-import 'package:lms_project/features/home/search_provider.dart';
-import 'package:lms_project/features/usage/digitized_assignments_page.dart';
+import 'package:lms_project/features/student_home/search_provider.dart';
+import 'package:lms_project/features/student_services/digitized_assignments_page.dart';
 import 'package:provider/provider.dart';
 
 class SearchResultsPage extends StatefulWidget {

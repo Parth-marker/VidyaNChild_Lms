@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:lms_project/features/home/home_provider.dart';
+import 'package:lms_project/features/student_home/home_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
-import 'package:lms_project/features/home/search_results_page.dart';
+import 'package:lms_project/features/student_home/search_results_page.dart';
 import 'package:provider/provider.dart';
 
 class HomeMenuPage extends StatefulWidget {

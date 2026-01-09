@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
-import 'package:lms_project/features/usage/ai_study_plan_page.dart';
+import 'package:lms_project/features/student_services/ai_study_plan_page.dart';
 import 'package:lms_project/features/auth/login_page.dart';
 import 'package:provider/provider.dart';
-import 'package:lms_project/features/auth/provider/auth_provider.dart';
+import 'package:lms_project/features/auth/auth_provider/auth_provider.dart';
 
 class StudentIdAnalyticsPage extends StatelessWidget {
   const StudentIdAnalyticsPage({super.key});

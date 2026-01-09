@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
-import 'package:lms_project/features/auth/provider/auth_provider.dart';
+import 'package:lms_project/features/auth/auth_provider/auth_provider.dart';
 
 class SignUpPage extends StatelessWidget {
   const SignUpPage({super.key});

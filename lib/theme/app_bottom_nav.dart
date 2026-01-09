@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:lms_project/features/home/home_menu_page.dart';
-import 'package:lms_project/features/home/student_id_analytics_page.dart';
-import 'package:lms_project/features/usage/ai_study_assistant_page.dart';
-import 'package:lms_project/features/usage/digitized_assignments_page.dart';
-import 'package:lms_project/features/usage/math_puzzles_page.dart';
+import 'package:lms_project/features/student_home/home_menu_page.dart';
+import 'package:lms_project/features/student_home/student_id_analytics_page.dart';
+import 'package:lms_project/features/student_services/ai_study_assistant_page.dart';
+import 'package:lms_project/features/student_services/digitized_assignments_page.dart';
+import 'package:lms_project/features/student_services/math_puzzles_page.dart';
 
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;

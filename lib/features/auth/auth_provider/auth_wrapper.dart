@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/features/auth/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import 'package:lms_project/features/home/home_menu_page.dart';
+import 'package:lms_project/features/student_home/home_menu_page.dart';
 import 'package:lms_project/features/teachers/teacher_home_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
-import 'package:lms_project/features/auth/provider/auth_provider.dart';
+import 'package:lms_project/features/auth/auth_provider/auth_provider.dart';
 
 //used for changing pages based on user authentication status
 class AuthWrapper extends StatefulWidget {
