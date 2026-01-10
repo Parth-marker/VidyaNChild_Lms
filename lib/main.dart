@@ -7,6 +7,7 @@ import 'package:lms_project/features/auth/auth_provider/auth_wrapper.dart';
 import 'package:lms_project/features/student_home/home_provider.dart';
 import 'package:lms_project/features/student_home/search_provider.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
+import 'package:lms_project/features/teachers/teacher_search_provider.dart';
 import 'package:lms_project/features/student_services/gemini_provider.dart';
 import 'firebase_options.dart';
 
@@ -27,6 +28,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => HomeProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => TeacherProvider()),
+        ChangeNotifierProvider(create: (_) => TeacherSearchProvider()),
         ChangeNotifierProvider(create: (_) => GeminiProvider()),
       ],
       child: MaterialApp(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
+import 'package:lms_project/features/teachers/widgets/assignment_form_dialog.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +20,60 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
     Future.microtask(() => context.read<TeacherProvider>().loadDashboard());
   }
 
+  Future<void> _showCreateDialog() async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => const AssignmentFormDialog(),
+    );
+
+    if (result != null && mounted) {
+      final teacher = context.read<TeacherProvider>();
+      final assignmentId = await teacher.createAssignment(result);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              assignmentId != null
+                  ? (result['publish'] == true ? 'Assignment published!' : 'Draft saved!')
+                  : 'Failed to create assignment',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showEditDialog(Map<String, dynamic> assignment) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AssignmentFormDialog(assignment: assignment),
+    );
+
+    if (result != null && mounted) {
+      final teacher = context.read<TeacherProvider>();
+      final assignmentId = assignment['id'] as String? ?? '';
+      final success = await teacher.updateAssignment(assignmentId, result);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? (result['publish'] == true ? 'Assignment published!' : 'Draft updated!')
+                  : 'Failed to update assignment',
+            ),
+          ),
+        );
+      }
+      
+      if (success && result['publish'] == true) {
+        // Reload dashboard to update lists
+        teacher.loadDashboard();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final teacher = context.watch<TeacherProvider>();
@@ -31,105 +87,141 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ActionCard(
-                title: 'Create New Assignment',
-                subtitle: 'Design a fresh worksheet, quiz, or project brief.',
-                buttonLabel: teacher.saving ? 'Saving...' : 'Create',
-                icon: Icons.add_task,
-                onPressed: teacher.saving
-                    ? () {}
-                    : () async {
-                        final id = await teacher.createAssignment({
-                          'title': 'New Assignment',
-                          'status': 'draft',
-                        });
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                id == null
-                                    ? 'Failed to create'
-                                    : 'Draft created',
+        child: teacher.loading
+            ? const Center(child: CircularProgressIndicator())
+            : StreamBuilder<List<Map<String, dynamic>>>(
+                stream: teacher.completionStats(),
+                builder: (context, assignmentsSnapshot) {
+                  final publishedAssignments = assignmentsSnapshot.data
+                          ?.where((a) => (a['status'] as String?) == 'published')
+                          .toList() ??
+                      [];
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ActionCard(
+                          title: 'Create New Assignment',
+                          subtitle: 'Design a fresh worksheet, quiz, or project brief.',
+                          buttonLabel: teacher.saving ? 'Saving...' : 'Create',
+                          icon: Icons.add_task,
+                          onPressed: teacher.saving ? () {} : _showCreateDialog,
+                        ),
+                        const SizedBox(height: 16),
+                        if (teacher.drafts.isNotEmpty) ...[
+                          Text(
+                            'Drafts',
+                            style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+                          ),
+                          const SizedBox(height: 8),
+                          ...teacher.drafts.map(
+                            (d) => _AssignmentDraftTile(
+                              assignment: d,
+                              onTap: () {
+                                _showEditDialog(d);
+                              },
+                              onDelete: () async {
+                                final assignmentId = d['id'] as String? ?? '';
+                                if (assignmentId.isNotEmpty && mounted) {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Delete Draft'),
+                                      content: const Text('Are you sure you want to delete this draft? This action cannot be undone.'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(true),
+                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true && mounted) {
+                                    final success = await teacher.deleteAssignment(assignmentId);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(success ? 'Draft deleted!' : 'Failed to delete draft'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        if (publishedAssignments.isNotEmpty) ...[
+                          Text(
+                            'Published Assignments',
+                            style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+                          ),
+                          const SizedBox(height: 8),
+                          ...publishedAssignments.map(
+                            (assignment) => _PublishedAssignmentTile(
+                              assignment: assignment,
+                              teacher: teacher,
+                              onDelete: () async {
+                                final assignmentId = assignment['id'] as String? ?? '';
+                                if (assignmentId.isNotEmpty && mounted) {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Delete Assignment'),
+                                      content: const Text('Are you sure you want to delete this published assignment? This action cannot be undone.'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(true),
+                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true && mounted) {
+                                    final success = await teacher.deleteAssignment(assignmentId);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(success ? 'Assignment deleted!' : 'Failed to delete assignment'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        if (teacher.drafts.isEmpty && publishedAssignments.isEmpty)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Text(
+                                'No assignments yet. Create your first assignment!',
+                                style: AppTextStyles.body.copyWith(color: Colors.black54),
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                          );
-                        }
-                      },
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Drafts & Templates',
-                style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
-              ),
-              const SizedBox(height: 8),
-              ...(teacher.drafts.isNotEmpty
-                      ? teacher.drafts
-                      : [
-                          {
-                            'title': 'Integers Check-in',
-                            'lastEdited': 'Edited 2 hrs ago',
-                            'status': 'Awaiting publish',
-                          },
-                          {
-                            'title': 'Project Rubric',
-                            'lastEdited': 'Edited yesterday',
-                            'status': 'Ready to assign',
-                          },
-                        ])
-                  .map(
-                    (d) => _AssignmentDraftTile(
-                      title: d['title'] as String,
-                      lastEdited: d['lastEdited'] as String? ?? '',
-                      status: d['status'] as String? ?? '',
-                    ),
-                  ),
-              const SizedBox(height: 16),
-              Text(
-                'Completion Status',
-                style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
-              ),
-              const SizedBox(height: 8),
-              StreamBuilder<List<Map<String, dynamic>>>(
-                stream: teacher.completionStats(),
-                builder: (context, snapshot) {
-                  final items = snapshot.data ?? [];
-                  if (items.isEmpty) {
-                    return Column(
-                      children: const [
-                        _CompletionRow(
-                          title: 'Fractions Practice Set',
-                          submitted: '28 / 32 turned in',
-                          percent: 0.87,
-                        ),
-                        _CompletionRow(
-                          title: 'Geometry Lab Report',
-                          submitted: '24 / 32 turned in',
-                          percent: 0.75,
-                        ),
-                      ],
-                    );
-                  }
-                  return Column(
-                    children: items
-                        .map(
-                          (i) => _CompletionRow(
-                            title: i['title'] as String? ?? 'Assignment',
-                            submitted: i['submitted'] as String? ?? '',
-                            percent: (i['percent'] as num?)?.toDouble() ?? 0.0,
                           ),
-                        )
-                        .toList(),
+                      ],
+                    ),
                   );
                 },
               ),
-            ],
-          ),
-        ),
       ),
       bottomNavigationBar: const TeacherBottomNavBar(currentIndex: 2),
     );
@@ -157,60 +249,71 @@ class _ActionCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(18),
-      child: Row(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.teal[50],
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: Colors.teal[600]),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.teal[50],
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 13,
-                    color: Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: onPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple[300],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                child: Icon(icon, color: Colors.teal[600], size: 24),
               ),
-            ),
-            child: Text(
-              buttonLabel,
-              style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple[300],
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                buttonLabel,
+                style: AppTextStyles.buttonPrimary.copyWith(fontSize: 15),
+              ),
             ),
           ),
         ],
@@ -221,17 +324,72 @@ class _ActionCard extends StatelessWidget {
 
 class _AssignmentDraftTile extends StatelessWidget {
   const _AssignmentDraftTile({
-    required this.title,
-    required this.lastEdited,
-    required this.status,
+    required this.assignment,
+    required this.onTap,
+    required this.onDelete,
   });
 
-  final String title;
-  final String lastEdited;
-  final String status;
+  final Map<String, dynamic> assignment;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  IconData _getIcon(String? assignmentType) {
+    if (assignmentType == 'Lesson') {
+      return Icons.bookmark; // Bookmark icon for lesson drafts (orange)
+    } else if (assignmentType == 'Quiz') {
+      return Icons.quiz; // Quiz icon for quiz drafts (orange)
+    }
+    return Icons.edit_note; // Edit note icon for worksheet drafts (orange)
+  }
+
+  Color _getIconColor(String? assignmentType) {
+    // For drafts, all types use orange
+    return Colors.orange;
+  }
+
+  Color _getIconBgColor(String? assignmentType) {
+    // For drafts, all types use orange background
+    return Colors.orange[50]!;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final title = assignment['title'] as String? ?? 'Untitled Assignment';
+    final assignmentType = assignment['assignmentType'] as String? ?? '';
+    String lastEdited = 'Draft';
+    
+    if (assignment['updatedAt'] != null) {
+      if (assignment['updatedAt'] is Timestamp) {
+        final date = (assignment['updatedAt'] as Timestamp).toDate();
+        final now = DateTime.now();
+        final difference = now.difference(date);
+        
+        if (difference.inDays > 0) {
+          lastEdited = 'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+        } else if (difference.inHours > 0) {
+          lastEdited = 'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+        } else if (difference.inMinutes > 0) {
+          lastEdited = 'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+        } else {
+          lastEdited = 'Just edited';
+        }
+      } else if (assignment['lastEdited'] is Timestamp) {
+        final date = (assignment['lastEdited'] as Timestamp).toDate();
+        final now = DateTime.now();
+        final difference = now.difference(date);
+        
+        if (difference.inDays > 0) {
+          lastEdited = 'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+        } else if (difference.inHours > 0) {
+          lastEdited = 'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+        } else if (difference.inMinutes > 0) {
+          lastEdited = 'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+        } else {
+          lastEdited = 'Just edited';
+        }
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -247,8 +405,8 @@ class _AssignmentDraftTile extends StatelessWidget {
       ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.teal[50],
-          child: const Icon(Icons.assignment_outlined, color: Colors.teal),
+          backgroundColor: _getIconBgColor(assignmentType),
+          child: Icon(_getIcon(assignmentType), color: _getIconColor(assignmentType)),
         ),
         title: Text(
           title,
@@ -257,6 +415,15 @@ class _AssignmentDraftTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (assignmentType.isNotEmpty) ...[
+              Text(
+                assignmentType,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 13,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
             Text(
               lastEdited,
               style: AppTextStyles.body.copyWith(
@@ -265,7 +432,7 @@ class _AssignmentDraftTile extends StatelessWidget {
               ),
             ),
             Text(
-              status,
+              'Draft - Tap to edit',
               style: AppTextStyles.body.copyWith(
                 fontSize: 13,
                 color: Colors.teal[600],
@@ -274,80 +441,392 @@ class _AssignmentDraftTile extends StatelessWidget {
             ),
           ],
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.more_horiz),
-          onPressed: () {},
+        trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          onSelected: (value) {
+            if (value == 'edit') {
+              onTap();
+            } else if (value == 'delete') {
+              onDelete();
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit, size: 18),
+                  SizedBox(width: 8),
+                  Text('Edit'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, size: 18, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Delete', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
         ),
+        onTap: onTap,
       ),
     );
   }
 }
 
-class _CompletionRow extends StatelessWidget {
-  const _CompletionRow({
-    required this.title,
-    required this.submitted,
-    required this.percent,
+class _PublishedAssignmentTile extends StatefulWidget {
+  const _PublishedAssignmentTile({
+    required this.assignment,
+    required this.teacher,
+    required this.onDelete,
   });
 
-  final String title;
-  final String submitted;
-  final double percent;
+  final Map<String, dynamic> assignment;
+  final TeacherProvider teacher;
+  final VoidCallback onDelete;
+
+  @override
+  State<_PublishedAssignmentTile> createState() => _PublishedAssignmentTileState();
+}
+
+class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
+  bool _isExpanded = false;
+
+  IconData _getIcon(String? assignmentType) {
+    if (assignmentType == 'Lesson') {
+      return Icons.bookmark;
+    } else if (assignmentType == 'Quiz') {
+      return Icons.quiz;
+    }
+    return Icons.assignment;
+  }
+
+  Color _getIconColor(String? assignmentType) {
+    if (assignmentType == 'Lesson') {
+      return Colors.purple;
+    } else if (assignmentType == 'Quiz') {
+      return Colors.blue;
+    }
+    return Colors.teal;
+  }
+
+  Color _getIconBgColor(String? assignmentType) {
+    if (assignmentType == 'Lesson') {
+      return Colors.purple[50]!;
+    } else if (assignmentType == 'Quiz') {
+      return Colors.blue[50]!;
+    }
+    return Colors.teal[50]!;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final assignmentId = widget.assignment['id'] as String? ?? '';
+    final title = widget.assignment['title'] as String? ?? 'Assignment';
+    final assignmentType = widget.assignment['assignmentType'] as String? ?? '';
+    final content = widget.assignment['content'] as String? ?? '';
+    final message = widget.assignment['message'] as String? ?? '';
+
+    // Only get submission stats for Worksheets and Quizzes, not Lessons
+    if (assignmentType == 'Lesson') {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: InkWell(
+            onTap: () {
+              setState(() => _isExpanded = !_isExpanded);
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: AppTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: _getIconBgColor(assignmentType),
+                      child: Icon(_getIcon(assignmentType), color: _getIconColor(assignmentType)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: AppTextStyles.body.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (assignmentType.isNotEmpty)
+                            Text(
+                              assignmentType,
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (value) {
+                        if (value == 'view') {
+                          setState(() => _isExpanded = !_isExpanded);
+                        } else if (value == 'delete') {
+                          widget.onDelete();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'view',
+                          child: Row(
+                            children: [
+                              Icon(_isExpanded ? Icons.expand_less : Icons.expand_more, size: 18),
+                              const SizedBox(width: 8),
+                              Text(_isExpanded ? 'Hide Details' : 'View Details'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                Text(
-                  '${(percent * 100).round()}%',
-                  style: AppTextStyles.body.copyWith(color: Colors.teal[700]),
+                if (_isExpanded) ...[
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  if (message.isNotEmpty) ...[
+                    Text(
+                      'Message:',
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      message,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (content.isNotEmpty) ...[
+                    Text(
+                      'Content:',
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      content,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // For Worksheets and Quizzes, show submission stats
+    return StreamBuilder<Map<String, int>>(
+      stream: widget.teacher.getSubmissionStats(assignmentId),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? {'total': 0, 'submitted': 0, 'percentage': 0};
+        final total = stats['total'] ?? 0;
+        final submitted = stats['submitted'] ?? 0;
+        final percentage = stats['percentage'] ?? 0;
+        final percent = total > 0 ? (submitted / total) : 0.0;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            LinearProgressIndicator(
-              value: percent,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.teal[400],
-              backgroundColor: Colors.teal[50],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              submitted,
-              style: AppTextStyles.body.copyWith(
-                fontSize: 13,
-                color: Colors.black54,
+            child: InkWell(
+              onTap: () {
+                setState(() => _isExpanded = !_isExpanded);
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: _getIconBgColor(assignmentType),
+                        child: Icon(_getIcon(assignmentType), color: _getIconColor(assignmentType)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: AppTextStyles.body.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (assignmentType.isNotEmpty)
+                              Text(
+                                assignmentType,
+                                style: AppTextStyles.body.copyWith(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '$percentage%',
+                        style: AppTextStyles.body.copyWith(color: Colors.teal[700]),
+                      ),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) {
+                          if (value == 'view') {
+                            setState(() => _isExpanded = !_isExpanded);
+                          } else if (value == 'delete') {
+                            widget.onDelete();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'view',
+                            child: Row(
+                              children: [
+                                Icon(_isExpanded ? Icons.expand_less : Icons.expand_more, size: 18),
+                                const SizedBox(width: 8),
+                                Text(_isExpanded ? 'Hide Details' : 'View Details'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  LinearProgressIndicator(
+                    value: percent,
+                    minHeight: 8,
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.teal[400],
+                    backgroundColor: Colors.teal[50],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '$submitted / $total submissions',
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  if (_isExpanded) ...[
+                    const SizedBox(height: 12),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    if (message.isNotEmpty) ...[
+                      Text(
+                        'Message:',
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        message,
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (content.isNotEmpty) ...[
+                      Text(
+                        'Content:',
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        content,
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

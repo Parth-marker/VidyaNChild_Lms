@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
@@ -46,6 +47,7 @@ class StudentIdAnalyticsPage extends StatelessWidget {
 class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
     return Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [
         BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
@@ -56,10 +58,28 @@ class _ProfileHeader extends StatelessWidget {
           const CircleAvatar(radius: 28, child: Icon(Icons.person)),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(FirebaseAuth.instance.currentUser?.displayName ?? 'Student', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-              Text(FirebaseAuth.instance.currentUser?.email ?? 'Student', style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
-            ]),
+            child: currentUser != null
+                ? StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(currentUser.uid)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      String userName = 'Student';
+                      if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+                        final data = snapshot.data!.data() as Map<String, dynamic>?;
+                        userName = data?['name'] as String? ?? 'Student';
+                      }
+                      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(userName, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                        Text(currentUser.email ?? '', style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
+                      ]);
+                    },
+                  )
+                : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Student', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                    Text('', style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
+                  ]),
           ),
           ElevatedButton(
             onPressed: () async {

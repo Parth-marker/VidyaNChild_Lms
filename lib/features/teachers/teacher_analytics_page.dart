@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
@@ -56,6 +58,7 @@ class _TeacherAccountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -77,17 +80,40 @@ class _TeacherAccountCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Ms. Riya Rao',
-                    style:
-                        AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-                Text('Grade 7 • Mathematics',
-                    style: AppTextStyles.body
-                        .copyWith(fontSize: 13, color: Colors.black54)),
-              ],
-            ),
+            child: currentUser != null
+                ? StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(currentUser.uid)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      String userName = 'Teacher';
+                      if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+                        final data = snapshot.data!.data() as Map<String, dynamic>?;
+                        userName = data?['name'] as String? ?? 'Teacher';
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(userName,
+                              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                          Text(FirebaseAuth.instance.currentUser?.email ?? '',
+                              style: AppTextStyles.body
+                                  .copyWith(fontSize: 13, color: Colors.black54)),
+                        ],
+                      );
+                    },
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Teacher',
+                          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                      Text('Grade 7 • Mathematics',
+                          style: AppTextStyles.body
+                              .copyWith(fontSize: 13, color: Colors.black54)),
+                    ],
+                  ),
           ),
           ElevatedButton(
             onPressed: () async {

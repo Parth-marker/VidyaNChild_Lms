@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
+import 'package:lms_project/features/teachers/teacher_search_results_page.dart';
+import 'package:lms_project/features/teachers/teacher_tasks_page.dart';
 import 'package:provider/provider.dart';
 
 class TeacherHomePage extends StatefulWidget {
@@ -21,6 +25,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   @override
   Widget build(BuildContext context) {
     final teacher = context.watch<TeacherProvider>();
+    final currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
@@ -28,69 +33,156 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
-        title: Text('Welcome back, Teacher!', style: AppTextStyles.h1Teal),
+        title: currentUser != null
+            ? StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(currentUser.uid)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  String userName = 'Teacher';
+                  if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+                    final data = snapshot.data!.data() as Map<String, dynamic>?;
+                    userName = data?['name'] as String? ?? 'Teacher';
+                  }
+                  return Text('Welcome back, $userName!', style: AppTextStyles.h1Teal);
+                },
+              )
+            : Text('Welcome back, Teacher!', style: AppTextStyles.h1Teal),
       ),
       body: SafeArea(
         child: teacher.loading
             ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _TeacherSearchBar(),
-                    const SizedBox(height: 16),
-                    _SectionCard(
-                      title: 'Recent Uploads',
-                      children: (teacher.uploads.isNotEmpty
-                              ? teacher.uploads
-                              : [
-                                  {
-                                    'title': 'Grade 7 • Algebra Quiz',
-                                    'subtitle': 'Uploaded 10 mins ago'
-                                  },
-                                  {
-                                    'title': 'Geometry Slides',
-                                    'subtitle': 'Uploaded yesterday'
-                                  }
-                                ])
-                          .map(
-                            (u) => _TeacherUploadTile(
-                              icon: Icons.description_outlined,
-                              title: u['title'] as String,
-                              subtitle: u['subtitle'] as String? ?? '',
+            : StreamBuilder<List<Map<String, dynamic>>>(
+                stream: teacher.completionStats(),
+                builder: (context, assignmentsSnapshot) {
+                  // Get last 2 published worksheet assignments
+                  final publishedWorksheets = (assignmentsSnapshot.data ?? [])
+                      .where((a) => 
+                          (a['status'] as String?) == 'published' && 
+                          (a['assignmentType'] as String?) == 'Worksheet')
+                      .toList()
+                    ..sort((a, b) {
+                      final aDate = a['publishedAt'] as Timestamp?;
+                      final bDate = b['publishedAt'] as Timestamp?;
+                      if (aDate == null && bDate == null) return 0;
+                      if (aDate == null) return 1;
+                      if (bDate == null) return -1;
+                      return bDate.compareTo(aDate);
+                    });
+                  
+                  final last2Worksheets = publishedWorksheets.take(2).toList();
+                  
+                  // Get last 2 drafts (sorted by updatedAt or createdAt)
+                  final sortedDrafts = List<Map<String, dynamic>>.from(teacher.drafts)
+                    ..sort((a, b) {
+                      final aDate = a['updatedAt'] as Timestamp? ?? a['createdAt'] as Timestamp?;
+                      final bDate = b['updatedAt'] as Timestamp? ?? b['createdAt'] as Timestamp?;
+                      if (aDate == null && bDate == null) return 0;
+                      if (aDate == null) return 1;
+                      if (bDate == null) return -1;
+                      return bDate.compareTo(aDate);
+                    });
+                  
+                  final last2Drafts = sortedDrafts.take(2).toList();
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _TeacherSearchBar(onSearchTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const TeacherSearchResultsPage(),
                             ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    _SectionCard(
-                      title: 'Recent Submission %',
-                      children: const [
-                        _SubmissionStatTile(
-                          title: 'Fractions Practice',
-                          detail: '28 of 32 students',
-                          percent: 0.87,
+                          );
+                        }),
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: 'Recent Drafts',
+                          children: last2Drafts.isEmpty
+                              ? [
+                                  Text(
+                                    'No drafts yet. Create your first assignment!',
+                                    style: AppTextStyles.body,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ]
+                              : last2Drafts.map(
+                                  (draft) {
+                                    final assignmentType = draft['assignmentType'] as String? ?? '';
+                                    IconData icon;
+                                    if (assignmentType == 'Lesson') {
+                                      icon = Icons.bookmark;
+                                    } else {
+                                      icon = Icons.edit_note;
+                                    }
+                                    
+                                    String subtitle = 'Draft';
+                                    if (draft['updatedAt'] is Timestamp) {
+                                      final date = (draft['updatedAt'] as Timestamp).toDate();
+                                      final now = DateTime.now();
+                                      final difference = now.difference(date);
+                                      
+                                      if (difference.inDays > 0) {
+                                        subtitle = 'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+                                      } else if (difference.inHours > 0) {
+                                        subtitle = 'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+                                      } else if (difference.inMinutes > 0) {
+                                        subtitle = 'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+                                      } else {
+                                        subtitle = 'Just edited';
+                                      }
+                                    }
+                                    
+                                    return _TeacherDraftTile(
+                                      icon: icon,
+                                      title: draft['title'] as String? ?? 'Untitled Assignment',
+                                      subtitle: subtitle,
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => const TeacherTasksPage(),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ).toList(),
                         ),
-                        _SubmissionStatTile(
-                          title: 'Geometry Lab',
-                          detail: '24 of 32 students',
-                          percent: 0.75,
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: 'Recent Submission %',
+                          children: last2Worksheets.isEmpty
+                              ? [
+                                  Text(
+                                    'No published worksheets yet.',
+                                    style: AppTextStyles.body,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ]
+                              : last2Worksheets.map(
+                                  (assignment) => _SubmissionStatTile(
+                                    assignment: assignment,
+                                    teacher: teacher,
+                                  ),
+                                ).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: 'Today\'s Timetable',
+                          children: const [
+                            _ClassRow(time: '08:00', topic: 'Warm Up & Check-ins'),
+                            _ClassRow(time: '08:40', topic: 'Algebra: Word Problems'),
+                            _ClassRow(time: '09:20', topic: 'Group Project Feedback'),
+                            _ClassRow(time: '10:00', topic: 'Quiz Review'),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _SectionCard(
-                      title: 'Today\'s Timetable',
-                      children: const [
-                        _ClassRow(time: '08:00', topic: 'Warm Up & Check-ins'),
-                        _ClassRow(time: '08:40', topic: 'Algebra: Word Problems'),
-                        _ClassRow(time: '09:20', topic: 'Group Project Feedback'),
-                        _ClassRow(time: '10:00', topic: 'Quiz Review'),
-                      ],
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
       ),
       bottomNavigationBar: const TeacherBottomNavBar(currentIndex: 0),
@@ -136,17 +228,22 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _TeacherSearchBar extends StatelessWidget {
-  const _TeacherSearchBar();
+  final VoidCallback onSearchTap;
+  const _TeacherSearchBar({required this.onSearchTap});
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       readOnly: true,
+      onTap: onSearchTap,
       decoration: InputDecoration(
         hintText: 'Search class resources, assignments, etc.',
         hintStyle:
             AppTextStyles.body.copyWith(color: Colors.black45, fontSize: 14),
-        prefixIcon: const Icon(Icons.search, color: Colors.teal),
+        prefixIcon: IconButton(
+          icon: const Icon(Icons.search, color: Colors.teal),
+          onPressed: onSearchTap,
+        ),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -160,24 +257,26 @@ class _TeacherSearchBar extends StatelessWidget {
   }
 }
 
-class _TeacherUploadTile extends StatelessWidget {
-  const _TeacherUploadTile({
+class _TeacherDraftTile extends StatelessWidget {
+  const _TeacherDraftTile({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
-        backgroundColor: Colors.teal[50],
-        child: Icon(icon, color: Colors.teal),
+        backgroundColor: Colors.orange[50],
+        child: Icon(icon, color: Colors.orange),
       ),
       title: Text(
         title,
@@ -188,13 +287,13 @@ class _TeacherUploadTile extends StatelessWidget {
         style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54),
       ),
       trailing: ElevatedButton(
-        onPressed: () {},
+        onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.purple[300],
           minimumSize: const Size(80, 38),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text('Review', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
+        child: Text('Edit', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
       ),
     );
   }
@@ -202,41 +301,65 @@ class _TeacherUploadTile extends StatelessWidget {
 
 class _SubmissionStatTile extends StatelessWidget {
   const _SubmissionStatTile({
-    required this.title,
-    required this.detail,
-    required this.percent,
+    required this.assignment,
+    required this.teacher,
   });
 
-  final String title;
-  final String detail;
-  final double percent;
+  final Map<String, dynamic> assignment;
+  final TeacherProvider teacher;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final assignmentId = assignment['id'] as String? ?? '';
+    final title = assignment['title'] as String? ?? 'Assignment';
+
+    return StreamBuilder<Map<String, int>>(
+      stream: teacher.getSubmissionStats(assignmentId),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? {'total': 0, 'submitted': 0, 'percentage': 0};
+        final total = stats['total'] ?? 0;
+        final submitted = stats['submitted'] ?? 0;
+        final percentage = stats['percentage'] ?? 0;
+        final percent = total > 0 ? (submitted / total) : 0.0;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-              Text('${(percent * 100).round()}%', style: AppTextStyles.body.copyWith(color: Colors.teal[700])),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    '$percentage%',
+                    style: AppTextStyles.body.copyWith(color: Colors.teal[700]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              LinearProgressIndicator(
+                value: percent,
+                minHeight: 10,
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.teal[400],
+                backgroundColor: Colors.teal[50],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$submitted / $total submissions',
+                style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54),
+              ),
             ],
           ),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            value: percent,
-            minHeight: 10,
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.teal[400],
-            backgroundColor: Colors.teal[50],
-          ),
-          const SizedBox(height: 4),
-          Text(detail, style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lms_project/features/student_home/home_provider.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
@@ -25,7 +26,7 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
   @override
   Widget build(BuildContext context) {
     final home = context.watch<HomeProvider>();
-    final userName = FirebaseAuth.instance.currentUser?.displayName ?? 'Student';
+    final currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
@@ -37,7 +38,22 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text('Welcome back!', style: AppTextStyles.h1Teal),
+        title: currentUser != null
+            ? StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(currentUser.uid)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  String userName = 'Student';
+                  if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+                    final data = snapshot.data!.data() as Map<String, dynamic>?;
+                    userName = data?['name'] as String? ?? 'Student';
+                  }
+                  return Text('Welcome back, $userName!', style: AppTextStyles.h1Teal);
+                },
+              )
+            : Text('Welcome back!', style: AppTextStyles.h1Teal),
         centerTitle: false,
       ),
       body: SafeArea(
