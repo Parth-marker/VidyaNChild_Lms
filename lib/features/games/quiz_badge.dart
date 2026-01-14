@@ -6,22 +6,42 @@ enum QuizBadge {
 }
 
 class BadgeHelper {
-  // Badge thresholds (in seconds)
-  // Gold: < 60 seconds (1 minute)
-  // Silver: < 120 seconds (2 minutes)
-  // Bronze: < 180 seconds (3 minutes)
-  // None: >= 180 seconds
+  // Badge thresholds based on performance score
+  // Performance = score * (1 + timeFactor)
+  // timeFactor = (maxTime - timeTaken) / maxTime
+  // Gold: performance >= 22
+  // Silver: performance >= 15 AND performance < 22
+  // Bronze: performance >= 8 AND performance < 15
+  // Grey (none): performance < 8
   
-  static const int goldThreshold = 60;
-  static const int silverThreshold = 120;
-  static const int bronzeThreshold = 180;
+  static const double goldThreshold = 22.0;
+  static const double silverThreshold = 15.0;
+  static const double bronzeThreshold = 8.0;
+  static const int maxTime = 300; // 5 minutes maximum time for 15 questions
 
-  static QuizBadge getBadge(int timeInSeconds) {
-    if (timeInSeconds < goldThreshold) {
+  /// Calculate badge based on score and time taken
+  /// 
+  /// [score] - Number of correct answers (out of 15)
+  /// [timeInSeconds] - Time taken to complete the quiz
+  /// 
+  /// Returns the badge based on performance calculation:
+  /// performance = score * (1 + timeFactor)
+  /// where timeFactor = (maxTime - timeTaken) / maxTime
+  static QuizBadge getBadge(int score, int timeInSeconds) {
+    // Calculate time factor (0 to 1, where 1 is fastest)
+    // Clamp timeInSeconds to maxTime to prevent negative timeFactor
+    final clampedTime = timeInSeconds > maxTime ? maxTime : timeInSeconds;
+    final timeFactor = (maxTime - clampedTime) / maxTime;
+    
+    // Calculate performance score
+    final performance = score * (1 + timeFactor);
+    
+    // Determine badge based on performance thresholds
+    if (performance >= goldThreshold) {
       return QuizBadge.gold;
-    } else if (timeInSeconds < silverThreshold) {
+    } else if (performance >= silverThreshold && performance < goldThreshold) {
       return QuizBadge.silver;
-    } else if (timeInSeconds < bronzeThreshold) {
+    } else if (performance >= bronzeThreshold && performance < silverThreshold) {
       return QuizBadge.bronze;
     } else {
       return QuizBadge.none;
@@ -37,7 +57,7 @@ class BadgeHelper {
       case QuizBadge.bronze:
         return 'Bronze';
       case QuizBadge.none:
-        return 'None';
+        return 'Grey';
     }
   }
 
@@ -50,7 +70,7 @@ class BadgeHelper {
       case QuizBadge.bronze:
         return 'bronze';
       case QuizBadge.none:
-        return 'none';
+        return 'grey';
     }
   }
 

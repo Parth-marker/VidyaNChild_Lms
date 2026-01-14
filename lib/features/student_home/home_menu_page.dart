@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:lms_project/features/student_home/home_provider.dart';
+import 'package:lms_project/features/student_services/student_assignment_provider.dart';
+import 'package:lms_project/features/games/quiz_storage.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
 import 'package:lms_project/features/student_home/search_results_page.dart';
+import 'package:lms_project/features/student_services/digitized_assignments_page.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class HomeMenuPage extends StatefulWidget {
   const HomeMenuPage({super.key});
@@ -15,17 +18,23 @@ class HomeMenuPage extends StatefulWidget {
 }
 
 class _HomeMenuPageState extends State<HomeMenuPage> {
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(
-      () => context.read<HomeProvider>().loadHome(),
-    );
+  Future<Map<String, dynamic>> _getLatestPuzzleScore() async {
+    final score = await QuizStorage.getBestScore();
+    final time = await QuizStorage.getBestTime();
+    final badge = await QuizStorage.getBestBadge();
+    
+    if (score != null && time != null && badge != null) {
+      return {
+        'score': score,
+        'time': time,
+        'badge': badge,
+      };
+    }
+    return {};
   }
 
   @override
   Widget build(BuildContext context) {
-    final home = context.watch<HomeProvider>();
     final currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
@@ -57,11 +66,7 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
         centerTitle: false,
       ),
       body: SafeArea(
-        child: home.loading
-            ? const Center(child: CircularProgressIndicator())
-            : home.error != null
-                ? Center(child: Text(home.error!, style: AppTextStyles.body))
-                : SingleChildScrollView(
+        child: SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,76 +78,84 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
                           );
                         }),
                         const SizedBox(height: 16),
-                        _SectionCard(
-                          title: 'Today\'s Events',
-                          children: (home.events.isNotEmpty
-                                  ? home.events
-                                  : [
-                                      {
-                                        'title': 'Math Worksheet',
-                                        'subtitle': 'Due today'
-                                      },
-                                      {
-                                        'title': 'Lesson Notes',
-                                        'subtitle': 'Due today'
-                                      }
-                                    ])
-                              .map((e) => _EventTile(
-                                    icon: Icons.description_outlined,
-                                    title: e['title'] as String,
-                                    subtitle: e['subtitle'] as String? ?? '',
-                                  ))
-                              .toList(),
+                        FutureBuilder<Map<String, dynamic>>(
+                          future: _getLatestPuzzleScore(),
+                          builder: (context, puzzleSnapshot) {
+                            if (puzzleSnapshot.hasData && puzzleSnapshot.data != null) {
+                              final puzzleData = puzzleSnapshot.data!;
+                              return _SectionCard(
+                                title: 'Latest Puzzle Score',
+                                children: [
+                                  _PuzzleScoreTile(
+                                    score: puzzleData['score'] as int?,
+                                    time: puzzleData['time'] as int?,
+                                    badge: puzzleData['badge'] as String?,
+                                  ),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
                         ),
                         const SizedBox(height: 16),
-                        _SectionCard(
-                          title: 'Where you left off',
-                          children: [
-                            if (home.progress.isNotEmpty)
-                              _ProgressPreview(
-                                title: home.progress.first['title'] as String,
-                                subtitle: home.progress.first['subtitle']
-                                        as String? ??
-                                    '',
-                              )
-                            else
-                              const _ProgressPreview(
-                                title: 'Fractions & Decimals',
-                                subtitle: 'Math • Page 36 of 90',
-                              ),
-                          ],
+                        StreamBuilder<List<Map<String, dynamic>>>(
+                          stream: context.read<StudentAssignmentProvider>().getMyQuizSubmissions(),
+                          builder: (context, submissionsSnapshot) {
+                            final submissions = submissionsSnapshot.data ?? [];
+                            final last3Submissions = submissions.take(3).toList();
+
+                            return _SectionCard(
+                              title: 'Recent Submissions',
+                              children: last3Submissions.isEmpty
+                                  ? [
+                                      Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Text(
+                                          'No submissions yet. Complete a quiz to see your results here!',
+                                          style: AppTextStyles.body.copyWith(
+                                            color: Colors.black54,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ]
+                                  : last3Submissions.map((submission) {
+                                      return _SubmissionTile(
+                                        submission: submission,
+                                        assignmentProvider: context.read<StudentAssignmentProvider>(),
+                                      );
+                                    }).toList(),
+                            );
+                          },
                         ),
                         const SizedBox(height: 16),
-                        _SectionCard(
-                          title: 'Today\'s Timetable:',
-                          children: (home.timetable.isNotEmpty
-                                  ? home.timetable
-                                  : [
-                                      {
-                                        'time': '08:00',
-                                        'topic': 'Algebra: Linear Equations'
-                                      },
-                                      {
-                                        'time': '08:40',
-                                        'topic': 'Fractions & Decimals'
-                                      },
-                                      {
-                                        'time': '09:20',
-                                        'topic': 'Geometry: Triangles'
-                                      },
-                                      {
-                                        'time': '10:00',
-                                        'topic': 'Number Patterns'
-                                      },
-                                      {
-                                        'time': '10:40',
-                                        'topic': 'Quick Practice & Recap'
-                                      },
-                                    ])
-                              .map((c) => _ClassRow(
-                                  time: c['time'] as String,
-                                  topic: c['topic'] as String))
-                              .toList(),
+                        StreamBuilder<List<Map<String, dynamic>>>(
+                          stream: context.read<StudentAssignmentProvider>().getRecentWorksheetsAndLessons(),
+                          builder: (context, assignmentsSnapshot) {
+                            final assignments = assignmentsSnapshot.data ?? [];
+
+                            return _SectionCard(
+                              title: 'Recent Uploads',
+                              children: assignments.isEmpty
+                                  ? [
+                                      Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Text(
+                                          'No recent worksheets or lessons available.',
+                                          style: AppTextStyles.body.copyWith(
+                                            color: Colors.black54,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ]
+                                  : assignments.map((assignment) {
+                                      return _RecentUploadTile(
+                                        assignment: assignment,
+                                      );
+                                    }).toList(),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -214,83 +227,305 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-class _EventTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  const _EventTile({required this.icon, required this.title, required this.subtitle});
+
+
+class _SubmissionTile extends StatelessWidget {
+  final Map<String, dynamic> submission;
+  final StudentAssignmentProvider assignmentProvider;
+
+  const _SubmissionTile({
+    required this.submission,
+    required this.assignmentProvider,
+  });
+
+  String _formatDate(dynamic submittedAt) {
+    if (submittedAt == null) return 'Unknown date';
+    try {
+      Timestamp timestamp;
+      if (submittedAt is Timestamp) {
+        timestamp = submittedAt;
+      } else {
+        return 'Invalid date';
+      }
+      final date = timestamp.toDate();
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays == 0) {
+        return 'Today';
+      } else if (difference.inDays == 1) {
+        return 'Yesterday';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays} days ago';
+      } else {
+        return DateFormat('MMM dd, yyyy').format(date);
+      }
+    } catch (e) {
+      return 'Invalid date';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(backgroundColor: Colors.teal[50], child: Icon(icon, color: Colors.teal)),
-      title: Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
-      trailing: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[300], minimumSize: const Size(80, 38), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-        child: Text('Open', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
-      ),
+    final assignmentId = submission['assignmentId'] as String? ?? '';
+    final score = submission['score'] as int?;
+    final total = submission['totalQuestions'] as int?;
+    final percentage = submission['percentage'] as double?;
+    final submittedAt = submission['submittedAt'];
+
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: assignmentProvider.getAssignment(assignmentId),
+      builder: (context, snapshot) {
+        final assignment = snapshot.data;
+        final title = assignment?['title'] as String? ?? 'Quiz';
+
+        return ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: CircleAvatar(
+            backgroundColor: Colors.blue[50],
+            child: Icon(Icons.quiz, color: Colors.blue[600]),
+          ),
+          title: Text(
+            title,
+            style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _formatDate(submittedAt),
+                style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54),
+              ),
+              if (score != null && total != null)
+                Text(
+                  'Score: $score/$total (${percentage?.toStringAsFixed(1)}%)',
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13,
+                    color: percentage! >= 80
+                        ? Colors.green[700]
+                        : percentage >= 60
+                            ? Colors.blue[700]
+                            : Colors.orange[700],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+          trailing: Icon(Icons.check_circle, color: Colors.green[600]),
+        );
+      },
     );
   }
 }
 
-class _ProgressPreview extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _ProgressPreview({required this.title, required this.subtitle});
+class _PuzzleScoreTile extends StatelessWidget {
+  final int? score;
+  final int? time;
+  final String? badge;
+
+  const _PuzzleScoreTile({
+    required this.score,
+    required this.time,
+    required this.badge,
+  });
+
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  Color _getBadgeColor(String? badge) {
+    switch (badge?.toLowerCase()) {
+      case 'gold':
+        return Colors.amber;
+      case 'silver':
+        return Colors.grey[400]!;
+      case 'bronze':
+        return Colors.brown[400]!;
+      case 'grey':
+      case 'none':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (score == null || time == null) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'No puzzle scores yet. Try a math puzzle!',
+          style: AppTextStyles.body.copyWith(color: Colors.black54),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Container(
             width: 58,
             height: 58,
-            decoration: BoxDecoration(color: Colors.teal[100], borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.menu_book_rounded, color: Colors.teal),
+            decoration: BoxDecoration(
+              color: Colors.purple[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.extension, color: Colors.purple[600]),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-              Text(subtitle, style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Quick Math Challenge',
+                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      'Score: $score/15',
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Time: ${_formatTime(time!)}',
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.play_circle_outline, color: Colors.purple)),
+          if (badge != null && badge!.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getBadgeColor(badge).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _getBadgeColor(badge), width: 2),
+              ),
+              child: Text(
+                badge!.toUpperCase(),
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: _getBadgeColor(badge),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _ClassRow extends StatelessWidget {
-  final String time;
-  final String topic;
-  const _ClassRow({required this.time, required this.topic});
+class _RecentUploadTile extends StatelessWidget {
+  final Map<String, dynamic> assignment;
+
+  const _RecentUploadTile({required this.assignment});
+
+  String _formatDate(dynamic createdAt) {
+    if (createdAt == null) return 'Unknown date';
+    try {
+      Timestamp timestamp;
+      if (createdAt is Timestamp) {
+        timestamp = createdAt;
+      } else {
+        return 'Invalid date';
+      }
+      final date = timestamp.toDate();
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays == 0) {
+        return 'Today';
+      } else if (difference.inDays == 1) {
+        return 'Yesterday';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays} days ago';
+      } else {
+        return DateFormat('MMM dd, yyyy').format(date);
+      }
+    } catch (e) {
+      return 'Invalid date';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+    final title = assignment['title'] as String? ?? 'Untitled';
+    final assignmentType = assignment['assignmentType'] as String? ?? '';
+    final createdAt = assignment['createdAt'];
+
+    IconData icon;
+    Color iconColor;
+    Color iconBgColor;
+
+    if (assignmentType == 'Lesson') {
+      icon = Icons.bookmark;
+      iconColor = Colors.purple[600]!;
+      iconBgColor = Colors.purple[50]!;
+    } else {
+      icon = Icons.description_outlined;
+      iconColor = Colors.teal[600]!;
+      iconBgColor = Colors.teal[50]!;
+    }
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: iconBgColor,
+        child: Icon(icon, color: iconColor),
+      ),
+      title: Text(
+        title,
+        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(color: Colors.teal[50], borderRadius: BorderRadius.circular(10)),
-            child: Text(time, style: AppTextStyles.body.copyWith(color: Colors.teal[800])),
+          Text(
+            assignmentType,
+            style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54),
           ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(topic, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600))),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.chevron_right_rounded)),
+          Text(
+            _formatDate(createdAt),
+            style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54),
+          ),
         ],
+      ),
+      trailing: ElevatedButton(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const DigitizedAssignmentsPage(),
+            ),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.purple[300],
+          minimumSize: const Size(80, 38),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Text('View', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
       ),
     );
   }

@@ -85,7 +85,7 @@ class _QuizGamePageState extends State<QuizGamePage> {
     });
     timer?.cancel();
 
-    final badge = BadgeHelper.getBadge(elapsedTime);
+    final badge = BadgeHelper.getBadge(correctAnswers, elapsedTime);
     final badgeString = BadgeHelper.getBadgeString(badge);
 
     // Save best result

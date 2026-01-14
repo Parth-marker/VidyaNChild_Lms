@@ -2,9 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
 import 'package:lms_project/features/games/quick_math_challenge_page.dart';
+import 'package:lms_project/features/games/quiz_storage.dart';
 
-class MathPuzzlesPage extends StatelessWidget {
+class MathPuzzlesPage extends StatefulWidget {
   const MathPuzzlesPage({super.key});
+
+  @override
+  State<MathPuzzlesPage> createState() => _MathPuzzlesPageState();
+}
+
+class _MathPuzzlesPageState extends State<MathPuzzlesPage> {
+  int? bestScore;
+  String? bestBadge;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBestResult();
+  }
+
+  Future<void> _loadBestResult() async {
+    final score = await QuizStorage.getBestScore();
+    final badge = await QuizStorage.getBestBadge();
+    
+    setState(() {
+      bestScore = score;
+      bestBadge = badge;
+    });
+  }
+
+  Color _getBadgeColor(String? badge) {
+    switch (badge?.toLowerCase()) {
+      case 'gold':
+        return Colors.amber;
+      case 'silver':
+        return Colors.grey[400]!;
+      case 'bronze':
+        return Colors.brown[400]!;
+      case 'grey':
+      case 'none':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,43 +57,44 @@ class MathPuzzlesPage extends StatelessWidget {
         title: Text('Puzzles', style: AppTextStyles.h1Teal),
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Choose a game', style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _PuzzleCard(
               title: 'Quick Math Challenge',
               description: 'Test your skills with a series of quick math problems. Score points for each correct answer.',
-              onTap: () {
-                Navigator.of(context).push(
+              icon: Icons.flash_on,
+              iconColor: Colors.teal,
+              score: bestScore,
+              badge: bestBadge,
+              onTap: () async {
+                final result = await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const QuickMathChallengePage(),
                   ),
                 );
+                if (result == true) {
+                  _loadBestResult();
+                }
               },
+              getBadgeColor: _getBadgeColor,
             ),
-            const _PuzzleCard(
+            const SizedBox(height: 16),
+            _PuzzleCard(
               title: 'Number Sequence',
               description: 'Complete the number sequence by finding the missing values.',
-            ),
-            const _PuzzleCard(
-              title: 'Math Adventure',
-              description: 'Embark on a math adventure with fun challenges and puzzles.',
-            ),
-            const SizedBox(height: 8),
-            Text('Popular Categories', style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
-            Wrap(
-              spacing: 10,
-              runSpacing: 8,
-              children: const [
-                _CategoryChip('Algebra'),
-                _CategoryChip('Fractions'),
-                _CategoryChip('Geometry'),
-                _CategoryChip('Word Problems'),
-              ],
+              icon: Icons.numbers,
+              iconColor: Colors.purple,
+              score: null,
+              badge: null,
+              onTap: () {
+                // Number Sequence game not yet implemented
+              },
+              getBadgeColor: _getBadgeColor,
             ),
           ],
         ),
@@ -65,51 +107,152 @@ class MathPuzzlesPage extends StatelessWidget {
 class _PuzzleCard extends StatelessWidget {
   final String title;
   final String description;
+  final IconData icon;
+  final Color iconColor;
+  final int? score;
+  final String? badge;
   final VoidCallback? onTap;
-  const _PuzzleCard({required this.title, required this.description, this.onTap});
+  final Color Function(String?) getBadgeColor;
+
+  const _PuzzleCard({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.iconColor,
+    this.score,
+    this.badge,
+    this.onTap,
+    required this.getBadgeColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(color: Colors.teal[100], borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.extension_rounded, color: Colors.teal),
-        ),
-        title: Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-        subtitle: Text(description, style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
-        trailing: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[300], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          child: Text('Play', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top row: Image/Icon and Name | Score with Badge
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                // Puzzle image/icon and name
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: iconColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(icon, color: iconColor, size: 32),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Score with badge
+                if (score != null && badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: getBadgeColor(badge).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: getBadgeColor(badge), width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$score/15',
+                          style: AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: getBadgeColor(badge),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: getBadgeColor(badge),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            badge!.toUpperCase(),
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Play button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onTap,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple[300],
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Play',
+                  style: AppTextStyles.buttonPrimary.copyWith(fontSize: 16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Description
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              description,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 14,
+                color: Colors.black54,
+                height: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }
 }
-
-// Removed legacy local BottomBar; shared AppBottomNavBar is used instead.
-
-class _CategoryChip extends StatelessWidget {
-  final String text;
-  const _CategoryChip(this.text);
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      backgroundColor: Colors.teal[50],
-      label: Text(text, style: AppTextStyles.body.copyWith(fontSize: 13)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    );
-  }
-}
-
-

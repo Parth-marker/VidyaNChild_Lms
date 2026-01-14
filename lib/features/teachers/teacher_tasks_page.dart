@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
 import 'package:lms_project/features/teachers/widgets/assignment_form_dialog.dart';
+import 'package:lms_project/features/teachers/widgets/quiz_question_builder.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
 
@@ -497,6 +499,21 @@ class _PublishedAssignmentTile extends StatefulWidget {
 class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
   bool _isExpanded = false;
 
+  List<QuizQuestion> _parseQuizQuestions(String content) {
+    try {
+      final decoded = jsonDecode(content);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map((q) => QuizQuestion.fromMap(q))
+            .toList();
+      }
+    } catch (_) {
+      // If parsing fails, we'll fall back to showing raw content text
+    }
+    return [];
+  }
+
   IconData _getIcon(String? assignmentType) {
     if (assignmentType == 'Lesson') {
       return Icons.bookmark;
@@ -530,6 +547,11 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
     final title = widget.assignment['title'] as String? ?? 'Assignment';
     final assignmentType = widget.assignment['assignmentType'] as String? ?? '';
     final content = widget.assignment['content'] as String? ?? '';
+
+    // Pre‑parse quiz questions (if applicable) so we can show them nicely in the details section
+    final bool isQuiz = assignmentType == 'Quiz';
+    final List<QuizQuestion> quizQuestions =
+        (isQuiz && content.isNotEmpty) ? _parseQuizQuestions(content) : const [];
     final message = widget.assignment['message'] as String? ?? '';
 
     // Only get submission stats for Worksheets and Quizzes, not Lessons
@@ -803,7 +825,71 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    if (content.isNotEmpty) ...[
+                    if (isQuiz && quizQuestions.isNotEmpty) ...[
+                      Text(
+                        'Quiz Questions:',
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...quizQuestions.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final question = entry.value;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Q${index + 1}. ${question.questionText}',
+                                style: AppTextStyles.body.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              ...question.options.asMap().entries.map((optEntry) {
+                                final optIndex = optEntry.key;
+                                final optionText = optEntry.value;
+                                final bool isCorrect =
+                                    optIndex == question.correctAnswerIndex;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        isCorrect
+                                            ? Icons.check_circle
+                                            : Icons.radio_button_unchecked,
+                                        size: 16,
+                                        color: isCorrect ? Colors.green : Colors.grey,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          optionText,
+                                          style: AppTextStyles.body.copyWith(
+                                            fontSize: 13,
+                                            color: isCorrect
+                                                ? Colors.green[800]
+                                                : Colors.black87,
+                                            fontWeight:
+                                                isCorrect ? FontWeight.w600 : null,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        );
+                      }),
+                    ] else if (content.isNotEmpty) ...[
                       Text(
                         'Content:',
                         style: AppTextStyles.body.copyWith(

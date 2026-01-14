@@ -169,16 +169,6 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                                   ),
                                 ).toList(),
                         ),
-                        const SizedBox(height: 16),
-                        _SectionCard(
-                          title: 'Today\'s Timetable',
-                          children: const [
-                            _ClassRow(time: '08:00', topic: 'Warm Up & Check-ins'),
-                            _ClassRow(time: '08:40', topic: 'Algebra: Word Problems'),
-                            _ClassRow(time: '09:20', topic: 'Group Project Feedback'),
-                            _ClassRow(time: '10:00', topic: 'Quiz Review'),
-                          ],
-                        ),
                       ],
                     ),
                   );
@@ -364,36 +354,3 @@ class _SubmissionStatTile extends StatelessWidget {
   }
 }
 
-class _ClassRow extends StatelessWidget {
-  const _ClassRow({required this.time, required this.topic});
-
-  final String time;
-  final String topic;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.teal[50],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(time, style: AppTextStyles.body.copyWith(color: Colors.teal[800])),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              topic,
-              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.chevron_right_rounded)),
-        ],
-      ),
-    );
-  }
-}

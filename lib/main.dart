@@ -9,6 +9,7 @@ import 'package:lms_project/features/student_home/search_provider.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
 import 'package:lms_project/features/teachers/teacher_search_provider.dart';
 import 'package:lms_project/features/student_services/gemini_provider.dart';
+import 'package:lms_project/features/student_services/student_assignment_provider.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -30,6 +31,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TeacherProvider()),
         ChangeNotifierProvider(create: (_) => TeacherSearchProvider()),
         ChangeNotifierProvider(create: (_) => GeminiProvider()),
+        ChangeNotifierProvider(create: (_) => StudentAssignmentProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
