@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:lms_project/features/student_services/gemini_service.dart';
 
 class GeminiProvider extends ChangeNotifier {
   GeminiProvider({
-    String? apiKey,
-    DatabaseReference? apiKeyRef,
-  })  : _apiKey = apiKey,
-        _apiKeyRef =
-            apiKeyRef ?? FirebaseDatabase.instance.ref('config/gemini_api_key');
+    GeminiService? service,
+  }) : _service = service ?? GeminiService();
 
-  final DatabaseReference _apiKeyRef;
-  GenerativeModel? _model;
-  String? _apiKey;
+  final GeminiService _service;
   bool initializing = false;
   bool busy = false;
   String? error;
@@ -30,39 +24,17 @@ class GeminiProvider extends ChangeNotifier {
   }
 
   Future<void> init() async {
-    if (_model != null) return;
-    if ((_apiKey ?? '').isNotEmpty) {
-      _model = GenerativeModel(model: 'gemini-2.0-flash', apiKey: _apiKey!);
-      return;
-    }
-
     initializing = true;
     error = null;
     _notifySafely();
     try {
-      final snapshot = await _apiKeyRef.get();
-      final key = snapshot.value?.toString() ?? '';
-      if (key.isEmpty) {
-        error = 'Gemini API key not found in Realtime Database.';
-        return;
-      }
-      _apiKey = key;
-      _model = GenerativeModel(model: 'gemini-2.0-flash', apiKey: key);
+      await _service.init();
     } catch (e) {
-      error = 'Failed to load Gemini API key: $e';
+      error = e.toString();
     } finally {
       initializing = false;
       _notifySafely();
     }
-  }
-
-  Future<GenerativeModel> _ensureModel() async {
-    if (_model != null) return _model!;
-    await init();
-    if (_model == null) {
-      throw Exception(error ?? 'Gemini API key not available.');
-    }
-    return _model!;
   }
 
   Future<String> generate(String prompt) async {
@@ -70,9 +42,7 @@ class GeminiProvider extends ChangeNotifier {
     error = null;
     _notifySafely();
     try {
-      final model = await _ensureModel();
-      final res = await model.generateContent([Content.text(prompt)]);
-      return res.text ?? '';
+      return await _service.generate(prompt);
     } catch (e) {
       error = e.toString();
       rethrow;
@@ -87,11 +57,8 @@ class GeminiProvider extends ChangeNotifier {
     error = null;
     _notifySafely();
     try {
-      final model = await _ensureModel();
-      final stream = model.generateContentStream([Content.text(prompt)]);
-      await for (final chunk in stream) {
-        final text = chunk.text;
-        if (text != null) yield text;
+      await for (final chunk in _service.generateStream(prompt)) {
+        yield chunk;
       }
     } catch (e) {
       error = e.toString();
