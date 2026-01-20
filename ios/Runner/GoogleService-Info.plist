@@ -26,5 +26,7 @@
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
 	<string>1:291416133834:ios:dbd2eb019699b71bd2a433</string>
+	<key>DATABASE_URL</key>
+	<string>https://vidyanchild-lms-default-rtdb.asia-southeast1.firebasedatabase.app</string>
 </dict>
 </plist>

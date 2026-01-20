@@ -52,6 +52,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '291416133834',
     projectId: 'vidyanchild-lms',
     authDomain: 'vidyanchild-lms.firebaseapp.com',
+    databaseURL: 'https://vidyanchild-lms-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'vidyanchild-lms.firebasestorage.app',
     measurementId: 'G-BS4Q47RDH3',
   );
@@ -61,6 +62,7 @@ class DefaultFirebaseOptions {
     appId: '1:291416133834:android:a07d1d5059781bfbd2a433',
     messagingSenderId: '291416133834',
     projectId: 'vidyanchild-lms',
+    databaseURL: 'https://vidyanchild-lms-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'vidyanchild-lms.firebasestorage.app',
   );
 
@@ -69,7 +71,9 @@ class DefaultFirebaseOptions {
     appId: '1:291416133834:ios:dbd2eb019699b71bd2a433',
     messagingSenderId: '291416133834',
     projectId: 'vidyanchild-lms',
+    databaseURL: 'https://vidyanchild-lms-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'vidyanchild-lms.firebasestorage.app',
     iosBundleId: 'com.example.lmsProject',
   );
+
 }

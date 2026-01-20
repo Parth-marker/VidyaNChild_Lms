@@ -29,13 +29,15 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
     if (result != null && mounted) {
       final teacher = context.read<TeacherProvider>();
       final assignmentId = await teacher.createAssignment(result);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               assignmentId != null
-                  ? (result['publish'] == true ? 'Assignment published!' : 'Draft saved!')
+                  ? (result['publish'] == true
+                        ? 'Assignment published!'
+                        : 'Draft saved!')
                   : 'Failed to create assignment',
             ),
           ),
@@ -54,19 +56,21 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
       final teacher = context.read<TeacherProvider>();
       final assignmentId = assignment['id'] as String? ?? '';
       final success = await teacher.updateAssignment(assignmentId, result);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               success
-                  ? (result['publish'] == true ? 'Assignment published!' : 'Draft updated!')
+                  ? (result['publish'] == true
+                        ? 'Assignment published!'
+                        : 'Draft updated!')
                   : 'Failed to update assignment',
             ),
           ),
         );
       }
-      
+
       if (success && result['publish'] == true) {
         // Reload dashboard to update lists
         teacher.loadDashboard();
@@ -92,8 +96,9 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
             : StreamBuilder<List<Map<String, dynamic>>>(
                 stream: teacher.completionStats(),
                 builder: (context, assignmentsSnapshot) {
-                  final publishedAssignments = assignmentsSnapshot.data
-                          ?.where((a) => (a['status'] as String?) == 'published')
+                  final publishedAssignments =
+                      assignmentsSnapshot.data
+                          ?.where((a) => a['isPublished'] == true)
                           .toList() ??
                       [];
 
@@ -104,7 +109,8 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                       children: [
                         _ActionCard(
                           title: 'Create New Assignment',
-                          subtitle: 'Design a fresh worksheet, quiz, or project brief.',
+                          subtitle:
+                              'Design a fresh worksheet, quiz, or project brief.',
                           buttonLabel: teacher.saving ? 'Saving...' : 'Create',
                           icon: Icons.add_task,
                           onPressed: teacher.saving ? () {} : _showCreateDialog,
@@ -113,7 +119,9 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                         if (teacher.drafts.isNotEmpty) ...[
                           Text(
                             'Drafts',
-                            style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+                            style: AppTextStyles.h1Purple.copyWith(
+                              fontSize: 18,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           ...teacher.drafts.map(
@@ -129,26 +137,39 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                                     context: context,
                                     builder: (context) => AlertDialog(
                                       title: const Text('Delete Draft'),
-                                      content: const Text('Are you sure you want to delete this draft? This action cannot be undone.'),
+                                      content: const Text(
+                                        'Are you sure you want to delete this draft? This action cannot be undone.',
+                                      ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.of(context).pop(false),
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(false),
                                           child: const Text('Cancel'),
                                         ),
                                         TextButton(
-                                          onPressed: () => Navigator.of(context).pop(true),
-                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(true),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.red,
+                                          ),
                                           child: const Text('Delete'),
                                         ),
                                       ],
                                     ),
                                   );
                                   if (confirm == true && mounted) {
-                                    final success = await teacher.deleteAssignment(assignmentId);
+                                    final success = await teacher
+                                        .deleteAssignment(assignmentId);
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text(success ? 'Draft deleted!' : 'Failed to delete draft'),
+                                          content: Text(
+                                            success
+                                                ? 'Draft deleted!'
+                                                : 'Failed to delete draft',
+                                          ),
                                         ),
                                       );
                                     }
@@ -162,7 +183,9 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                         if (publishedAssignments.isNotEmpty) ...[
                           Text(
                             'Published Assignments',
-                            style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+                            style: AppTextStyles.h1Purple.copyWith(
+                              fontSize: 18,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           ...publishedAssignments.map(
@@ -170,32 +193,46 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                               assignment: assignment,
                               teacher: teacher,
                               onDelete: () async {
-                                final assignmentId = assignment['id'] as String? ?? '';
+                                final assignmentId =
+                                    assignment['id'] as String? ?? '';
                                 if (assignmentId.isNotEmpty && mounted) {
                                   final confirm = await showDialog<bool>(
                                     context: context,
                                     builder: (context) => AlertDialog(
                                       title: const Text('Delete Assignment'),
-                                      content: const Text('Are you sure you want to delete this published assignment? This action cannot be undone.'),
+                                      content: const Text(
+                                        'Are you sure you want to delete this published assignment? This action cannot be undone.',
+                                      ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.of(context).pop(false),
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(false),
                                           child: const Text('Cancel'),
                                         ),
                                         TextButton(
-                                          onPressed: () => Navigator.of(context).pop(true),
-                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(true),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.red,
+                                          ),
                                           child: const Text('Delete'),
                                         ),
                                       ],
                                     ),
                                   );
                                   if (confirm == true && mounted) {
-                                    final success = await teacher.deleteAssignment(assignmentId);
+                                    final success = await teacher
+                                        .deleteAssignment(assignmentId);
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text(success ? 'Assignment deleted!' : 'Failed to delete assignment'),
+                                          content: Text(
+                                            success
+                                                ? 'Assignment deleted!'
+                                                : 'Failed to delete assignment',
+                                          ),
                                         ),
                                       );
                                     }
@@ -206,13 +243,16 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                           ),
                           const SizedBox(height: 16),
                         ],
-                        if (teacher.drafts.isEmpty && publishedAssignments.isEmpty)
+                        if (teacher.drafts.isEmpty &&
+                            publishedAssignments.isEmpty)
                           Center(
                             child: Padding(
                               padding: const EdgeInsets.all(32),
                               child: Text(
                                 'No assignments yet. Create your first assignment!',
-                                style: AppTextStyles.body.copyWith(color: Colors.black54),
+                                style: AppTextStyles.body.copyWith(
+                                  color: Colors.black54,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
@@ -357,19 +397,22 @@ class _AssignmentDraftTile extends StatelessWidget {
     final title = assignment['title'] as String? ?? 'Untitled Assignment';
     final assignmentType = assignment['assignmentType'] as String? ?? '';
     String lastEdited = 'Draft';
-    
+
     if (assignment['updatedAt'] != null) {
       if (assignment['updatedAt'] is Timestamp) {
         final date = (assignment['updatedAt'] as Timestamp).toDate();
         final now = DateTime.now();
         final difference = now.difference(date);
-        
+
         if (difference.inDays > 0) {
-          lastEdited = 'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+          lastEdited =
+              'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
         } else if (difference.inHours > 0) {
-          lastEdited = 'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+          lastEdited =
+              'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
         } else if (difference.inMinutes > 0) {
-          lastEdited = 'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+          lastEdited =
+              'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
         } else {
           lastEdited = 'Just edited';
         }
@@ -377,13 +420,16 @@ class _AssignmentDraftTile extends StatelessWidget {
         final date = (assignment['lastEdited'] as Timestamp).toDate();
         final now = DateTime.now();
         final difference = now.difference(date);
-        
+
         if (difference.inDays > 0) {
-          lastEdited = 'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+          lastEdited =
+              'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
         } else if (difference.inHours > 0) {
-          lastEdited = 'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+          lastEdited =
+              'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
         } else if (difference.inMinutes > 0) {
-          lastEdited = 'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+          lastEdited =
+              'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
         } else {
           lastEdited = 'Just edited';
         }
@@ -406,7 +452,10 @@ class _AssignmentDraftTile extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: _getIconBgColor(assignmentType),
-          child: Icon(_getIcon(assignmentType), color: _getIconColor(assignmentType)),
+          child: Icon(
+            _getIcon(assignmentType),
+            color: _getIconColor(assignmentType),
+          ),
         ),
         title: Text(
           title,
@@ -491,7 +540,8 @@ class _PublishedAssignmentTile extends StatefulWidget {
   final VoidCallback onDelete;
 
   @override
-  State<_PublishedAssignmentTile> createState() => _PublishedAssignmentTileState();
+  State<_PublishedAssignmentTile> createState() =>
+      _PublishedAssignmentTileState();
 }
 
 class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
@@ -561,7 +611,10 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                   children: [
                     CircleAvatar(
                       backgroundColor: _getIconBgColor(assignmentType),
-                      child: Icon(_getIcon(assignmentType), color: _getIconColor(assignmentType)),
+                      child: Icon(
+                        _getIcon(assignmentType),
+                        color: _getIconColor(assignmentType),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -599,9 +652,16 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                           value: 'view',
                           child: Row(
                             children: [
-                              Icon(_isExpanded ? Icons.expand_less : Icons.expand_more, size: 18),
+                              Icon(
+                                _isExpanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
-                              Text(_isExpanded ? 'Hide Details' : 'View Details'),
+                              Text(
+                                _isExpanded ? 'Hide Details' : 'View Details',
+                              ),
                             ],
                           ),
                         ),
@@ -611,7 +671,10 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                             children: [
                               Icon(Icons.delete, size: 18, color: Colors.red),
                               SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ],
                           ),
                         ),
@@ -670,7 +733,8 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
     return StreamBuilder<Map<String, int>>(
       stream: widget.teacher.getSubmissionStats(assignmentId),
       builder: (context, snapshot) {
-        final stats = snapshot.data ?? {'total': 0, 'submitted': 0, 'percentage': 0};
+        final stats =
+            snapshot.data ?? {'total': 0, 'submitted': 0, 'percentage': 0};
         final total = stats['total'] ?? 0;
         final submitted = stats['submitted'] ?? 0;
         final percentage = stats['percentage'] ?? 0;
@@ -703,7 +767,10 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                     children: [
                       CircleAvatar(
                         backgroundColor: _getIconBgColor(assignmentType),
-                        child: Icon(_getIcon(assignmentType), color: _getIconColor(assignmentType)),
+                        child: Icon(
+                          _getIcon(assignmentType),
+                          color: _getIconColor(assignmentType),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -729,7 +796,9 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                       ),
                       Text(
                         '$percentage%',
-                        style: AppTextStyles.body.copyWith(color: Colors.teal[700]),
+                        style: AppTextStyles.body.copyWith(
+                          color: Colors.teal[700],
+                        ),
                       ),
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert),
@@ -745,9 +814,16 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                             value: 'view',
                             child: Row(
                               children: [
-                                Icon(_isExpanded ? Icons.expand_less : Icons.expand_more, size: 18),
+                                Icon(
+                                  _isExpanded
+                                      ? Icons.expand_less
+                                      : Icons.expand_more,
+                                  size: 18,
+                                ),
                                 const SizedBox(width: 8),
-                                Text(_isExpanded ? 'Hide Details' : 'View Details'),
+                                Text(
+                                  _isExpanded ? 'Hide Details' : 'View Details',
+                                ),
                               ],
                             ),
                           ),
@@ -757,7 +833,10 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                               children: [
                                 Icon(Icons.delete, size: 18, color: Colors.red),
                                 SizedBox(width: 8),
-                                Text('Delete', style: TextStyle(color: Colors.red)),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(color: Colors.red),
+                                ),
                               ],
                             ),
                           ),

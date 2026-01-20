@@ -19,13 +19,14 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => context.read<TeacherProvider>().loadDashboard());
+    Future.microtask(() {
+      if (!mounted) return;
+      context.read<TeacherProvider>().loadDashboard();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final teacher = context.watch<TeacherProvider>();
-
     return Scaffold(
       backgroundColor: const Color(0xFFFFF9E6),
       appBar: AppBar(
@@ -43,7 +44,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
               const SizedBox(height: 16),
               const _PerformanceCard(),
               const SizedBox(height: 16),
-              _TrendGrid(items: teacher.analytics),
+              const _TrendCard(),
             ],
           ),
         ),
@@ -74,10 +75,7 @@ class _TeacherAccountCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          const CircleAvatar(
-            radius: 28,
-            child: Icon(Icons.person_outline),
-          ),
+          const CircleAvatar(radius: 28, child: Icon(Icons.person_outline)),
           const SizedBox(width: 12),
           Expanded(
             child: currentUser != null
@@ -88,18 +86,29 @@ class _TeacherAccountCard extends StatelessWidget {
                         .snapshots(),
                     builder: (context, snapshot) {
                       String userName = 'Teacher';
-                      if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
-                        final data = snapshot.data!.data() as Map<String, dynamic>?;
+                      if (snapshot.hasData &&
+                          snapshot.data != null &&
+                          snapshot.data!.exists) {
+                        final data =
+                            snapshot.data!.data() as Map<String, dynamic>?;
                         userName = data?['name'] as String? ?? 'Teacher';
                       }
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(userName,
-                              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-                          Text(FirebaseAuth.instance.currentUser?.email ?? '',
-                              style: AppTextStyles.body
-                                  .copyWith(fontSize: 13, color: Colors.black54)),
+                          Text(
+                            userName,
+                            style: AppTextStyles.body.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            FirebaseAuth.instance.currentUser?.email ?? '',
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                          ),
                         ],
                       );
                     },
@@ -107,17 +116,28 @@ class _TeacherAccountCard extends StatelessWidget {
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Teacher',
-                          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-                      Text('Grade 7 • Mathematics',
-                          style: AppTextStyles.body
-                              .copyWith(fontSize: 13, color: Colors.black54)),
+                      Text(
+                        'Teacher',
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Grade 7 • Mathematics',
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                      ),
                     ],
                   ),
           ),
           ElevatedButton(
             onPressed: () async {
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
               await authProvider.logout();
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
@@ -132,8 +152,10 @@ class _TeacherAccountCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text('Log out',
-                style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
+            child: Text(
+              'Log out',
+              style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14),
+            ),
           ),
         ],
       ),
@@ -144,144 +166,148 @@ class _TeacherAccountCard extends StatelessWidget {
 class _PerformanceCard extends StatelessWidget {
   const _PerformanceCard();
 
-  List<Map<String, dynamic>> get _tests => const [
-        {'label': 'Unit Test 4', 'avg': '89%', 'trend': Icons.trending_up},
-        {'label': 'Unit Test 3', 'avg': '82%', 'trend': Icons.trending_up},
-        {'label': 'Unit Test 2', 'avg': '76%', 'trend': Icons.trending_flat},
-        {'label': 'Unit Test 1', 'avg': '68%', 'trend': Icons.trending_down},
-      ];
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Last 4 Tests',
-              style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
-          const SizedBox(height: 12),
-          ..._tests.map(
-            (test) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(test['label'] as String,
-                            style: AppTextStyles.body
-                                .copyWith(fontWeight: FontWeight.w600)),
-                        Text('Class average',
-                            style: AppTextStyles.body.copyWith(
-                                fontSize: 13, color: Colors.black54)),
-                      ],
-                    ),
-                  ),
-                  Text(test['avg'] as String,
-                      style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
-                  const SizedBox(width: 8),
-                  Icon(
-                    test['trend'] as IconData,
-                    color: Colors.teal[600],
-                  ),
-                ],
+    final teacher = context.watch<TeacherProvider>();
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: teacher.getClassPerformance(),
+      builder: (context, snapshot) {
+        final performances = snapshot.data ?? [];
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Recent Assignments Performance',
+                style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 12),
+              if (performances.isEmpty)
+                Text(
+                  'No assignment data yet.',
+                  style: AppTextStyles.body.copyWith(color: Colors.black54),
+                ),
+              ...performances.map(
+                (test) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              test['label'] as String,
+                              style: AppTextStyles.body.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'Class average',
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        test['avg'] as String,
+                        style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(test['trend'] as IconData, color: Colors.teal[600]),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-class _TrendGrid extends StatelessWidget {
-  const _TrendGrid({required this.items});
-
-  final List<Map<String, dynamic>> items;
+class _TrendCard extends StatelessWidget {
+  const _TrendCard();
 
   @override
   Widget build(BuildContext context) {
-    final defaults = [
-      {
-        'label': 'Homework',
-        'value': '92%',
-        'detail': 'on-time submissions',
-        'color': Colors.teal[50],
-      },
-      {
-        'label': 'Concept Mastery',
-        'value': '78%',
-        'detail': 'scored above 75%',
-        'color': Colors.orange[50],
-      },
-      {
-        'label': 'Participation',
-        'value': '68%',
-        'detail': 'spoke up daily',
-        'color': Colors.purple[50],
-      },
-      {
-        'label': 'Interventions',
-        'value': '5',
-        'detail': 'students flagged',
-        'color': Colors.red[50],
-      },
-    ];
+    final teacher = context.watch<TeacherProvider>();
 
-    final rows = items.isNotEmpty ? items : defaults;
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: teacher.getTrendStats(),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) return const SizedBox.shrink();
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: rows.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.4,
-      ),
-      itemBuilder: (context, index) {
-        final item = rows[index];
-        return Container(
-          decoration: BoxDecoration(
-            color: item['color'] as Color?,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: items.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.4,
+          ),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return Container(
+              decoration: BoxDecoration(
+                color: item['color'] as Color?,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-            ],
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(item['label'] as String,
-                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-              Text(item['value'] as String,
-                  style: AppTextStyles.h1Purple.copyWith(fontSize: 22)),
-              Text(item['detail'] as String,
-                  style: AppTextStyles.body
-                      .copyWith(fontSize: 13, color: Colors.black54)),
-            ],
-          ),
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    item['label'] as String,
+                    style: AppTextStyles.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    item['value'] as String,
+                    style: AppTextStyles.h1Purple.copyWith(fontSize: 22),
+                  ),
+                  Text(
+                    item['detail'] as String,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

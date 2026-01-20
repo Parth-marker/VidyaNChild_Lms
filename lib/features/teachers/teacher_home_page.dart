@@ -6,6 +6,7 @@ import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
 import 'package:lms_project/features/teachers/teacher_search_results_page.dart';
 import 'package:lms_project/features/teachers/teacher_tasks_page.dart';
+import 'package:lms_project/models/timeline_model.dart';
 import 'package:provider/provider.dart';
 
 class TeacherHomePage extends StatefulWidget {
@@ -41,11 +42,16 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   String userName = 'Teacher';
-                  if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+                  if (snapshot.hasData &&
+                      snapshot.data != null &&
+                      snapshot.data!.exists) {
                     final data = snapshot.data!.data() as Map<String, dynamic>?;
                     userName = data?['name'] as String? ?? 'Teacher';
                   }
-                  return Text('Welcome back, $userName!', style: AppTextStyles.h1Teal);
+                  return Text(
+                    'Welcome back, $userName!',
+                    style: AppTextStyles.h1Teal,
+                  );
                 },
               )
             : Text('Welcome back, Teacher!', style: AppTextStyles.h1Teal),
@@ -57,33 +63,41 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 stream: teacher.completionStats(),
                 builder: (context, assignmentsSnapshot) {
                   // Get last 2 published worksheet assignments
-                  final publishedWorksheets = (assignmentsSnapshot.data ?? [])
-                      .where((a) => 
-                          (a['status'] as String?) == 'published' && 
-                          (a['assignmentType'] as String?) == 'Worksheet')
-                      .toList()
-                    ..sort((a, b) {
-                      final aDate = a['publishedAt'] as Timestamp?;
-                      final bDate = b['publishedAt'] as Timestamp?;
-                      if (aDate == null && bDate == null) return 0;
-                      if (aDate == null) return 1;
-                      if (bDate == null) return -1;
-                      return bDate.compareTo(aDate);
-                    });
-                  
+                  final publishedWorksheets =
+                      (assignmentsSnapshot.data ?? [])
+                          .where(
+                            (a) =>
+                                (a['isPublished'] == true) &&
+                                (a['type'] as String?) == 'Worksheet',
+                          )
+                          .toList()
+                        ..sort((a, b) {
+                          final aDate = a['publishedAt'] as Timestamp?;
+                          final bDate = b['publishedAt'] as Timestamp?;
+                          if (aDate == null && bDate == null) return 0;
+                          if (aDate == null) return 1;
+                          if (bDate == null) return -1;
+                          return bDate.compareTo(aDate);
+                        });
+
                   final last2Worksheets = publishedWorksheets.take(2).toList();
-                  
+
                   // Get last 2 drafts (sorted by updatedAt or createdAt)
-                  final sortedDrafts = List<Map<String, dynamic>>.from(teacher.drafts)
-                    ..sort((a, b) {
-                      final aDate = a['updatedAt'] as Timestamp? ?? a['createdAt'] as Timestamp?;
-                      final bDate = b['updatedAt'] as Timestamp? ?? b['createdAt'] as Timestamp?;
-                      if (aDate == null && bDate == null) return 0;
-                      if (aDate == null) return 1;
-                      if (bDate == null) return -1;
-                      return bDate.compareTo(aDate);
-                    });
-                  
+                  final sortedDrafts =
+                      List<Map<String, dynamic>>.from(teacher.drafts)
+                        ..sort((a, b) {
+                          final aDate =
+                              a['updatedAt'] as Timestamp? ??
+                              a['createdAt'] as Timestamp?;
+                          final bDate =
+                              b['updatedAt'] as Timestamp? ??
+                              b['createdAt'] as Timestamp?;
+                          if (aDate == null && bDate == null) return 0;
+                          if (aDate == null) return 1;
+                          if (bDate == null) return -1;
+                          return bDate.compareTo(aDate);
+                        });
+
                   final last2Drafts = sortedDrafts.take(2).toList();
 
                   return SingleChildScrollView(
@@ -91,13 +105,16 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _TeacherSearchBar(onSearchTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const TeacherSearchResultsPage(),
-                            ),
-                          );
-                        }),
+                        _TeacherSearchBar(
+                          onSearchTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const TeacherSearchResultsPage(),
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 16),
                         _SectionCard(
                           title: 'Recent Drafts',
@@ -109,47 +126,54 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                                     textAlign: TextAlign.center,
                                   ),
                                 ]
-                              : last2Drafts.map(
-                                  (draft) {
-                                    final assignmentType = draft['assignmentType'] as String? ?? '';
-                                    IconData icon;
-                                    if (assignmentType == 'Lesson') {
-                                      icon = Icons.bookmark;
+                              : last2Drafts.map((draft) {
+                                  final assignmentType =
+                                      draft['type'] as String? ?? '';
+                                  IconData icon;
+                                  if (assignmentType == 'Lesson') {
+                                    icon = Icons.bookmark;
+                                  } else {
+                                    icon = Icons.edit_note;
+                                  }
+
+                                  String subtitle = 'Draft';
+                                  if (draft['updatedAt'] is Timestamp) {
+                                    final date =
+                                        (draft['updatedAt'] as Timestamp)
+                                            .toDate();
+                                    final now = DateTime.now();
+                                    final difference = now.difference(date);
+
+                                    if (difference.inDays > 0) {
+                                      subtitle =
+                                          'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+                                    } else if (difference.inHours > 0) {
+                                      subtitle =
+                                          'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+                                    } else if (difference.inMinutes > 0) {
+                                      subtitle =
+                                          'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
                                     } else {
-                                      icon = Icons.edit_note;
+                                      subtitle = 'Just edited';
                                     }
-                                    
-                                    String subtitle = 'Draft';
-                                    if (draft['updatedAt'] is Timestamp) {
-                                      final date = (draft['updatedAt'] as Timestamp).toDate();
-                                      final now = DateTime.now();
-                                      final difference = now.difference(date);
-                                      
-                                      if (difference.inDays > 0) {
-                                        subtitle = 'Edited ${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
-                                      } else if (difference.inHours > 0) {
-                                        subtitle = 'Edited ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
-                                      } else if (difference.inMinutes > 0) {
-                                        subtitle = 'Edited ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
-                                      } else {
-                                        subtitle = 'Just edited';
-                                      }
-                                    }
-                                    
-                                    return _TeacherDraftTile(
-                                      icon: icon,
-                                      title: draft['title'] as String? ?? 'Untitled Assignment',
-                                      subtitle: subtitle,
-                                      onTap: () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => const TeacherTasksPage(),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                ).toList(),
+                                  }
+
+                                  return _TeacherDraftTile(
+                                    icon: icon,
+                                    title:
+                                        draft['title'] as String? ??
+                                        'Untitled Assignment',
+                                    subtitle: subtitle,
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const TeacherTasksPage(),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                }).toList(),
                         ),
                         const SizedBox(height: 16),
                         _SectionCard(
@@ -162,21 +186,54 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                                     textAlign: TextAlign.center,
                                   ),
                                 ]
-                              : last2Worksheets.map(
-                                  (assignment) => _SubmissionStatTile(
-                                    assignment: assignment,
-                                    teacher: teacher,
-                                  ),
-                                ).toList(),
+                              : last2Worksheets
+                                    .map(
+                                      (assignment) => _SubmissionStatTile(
+                                        assignment: assignment,
+                                        teacher: teacher,
+                                      ),
+                                    )
+                                    .toList(),
                         ),
                         const SizedBox(height: 16),
                         _SectionCard(
                           title: 'Today\'s Timetable',
-                          children: const [
-                            _ClassRow(time: '08:00', topic: 'Warm Up & Check-ins'),
-                            _ClassRow(time: '08:40', topic: 'Algebra: Word Problems'),
-                            _ClassRow(time: '09:20', topic: 'Group Project Feedback'),
-                            _ClassRow(time: '10:00', topic: 'Quiz Review'),
+                          children: [
+                            FutureBuilder<List<TimelineEvent>>(
+                              future: teacher.getTodayTimetable(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                }
+                                final events = snapshot.data ?? [];
+                                if (events.isEmpty) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8.0,
+                                    ),
+                                    child: Text(
+                                      'No classes scheduled for today.',
+                                      style: AppTextStyles.body.copyWith(
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Column(
+                                  children: events.map((event) {
+                                    final time =
+                                        '${event.date.hour.toString().padLeft(2, '0')}:${event.date.minute.toString().padLeft(2, '0')}';
+                                    return _ClassRow(
+                                      time: time,
+                                      topic: event.title,
+                                    );
+                                  }).toList(),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ],
@@ -191,10 +248,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
@@ -238,8 +292,10 @@ class _TeacherSearchBar extends StatelessWidget {
       onTap: onSearchTap,
       decoration: InputDecoration(
         hintText: 'Search class resources, assignments, etc.',
-        hintStyle:
-            AppTextStyles.body.copyWith(color: Colors.black45, fontSize: 14),
+        hintStyle: AppTextStyles.body.copyWith(
+          color: Colors.black45,
+          fontSize: 14,
+        ),
         prefixIcon: IconButton(
           icon: const Icon(Icons.search, color: Colors.teal),
           onPressed: onSearchTap,
@@ -250,8 +306,10 @@ class _TeacherSearchBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           borderSide: BorderSide.none,
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 14,
+          horizontal: 18,
+        ),
       ),
     );
   }
@@ -291,19 +349,21 @@ class _TeacherDraftTile extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.purple[300],
           minimumSize: const Size(80, 38),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
-        child: Text('Edit', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
+        child: Text(
+          'Edit',
+          style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14),
+        ),
       ),
     );
   }
 }
 
 class _SubmissionStatTile extends StatelessWidget {
-  const _SubmissionStatTile({
-    required this.assignment,
-    required this.teacher,
-  });
+  const _SubmissionStatTile({required this.assignment, required this.teacher});
 
   final Map<String, dynamic> assignment;
   final TeacherProvider teacher;
@@ -316,7 +376,8 @@ class _SubmissionStatTile extends StatelessWidget {
     return StreamBuilder<Map<String, int>>(
       stream: teacher.getSubmissionStats(assignmentId),
       builder: (context, snapshot) {
-        final stats = snapshot.data ?? {'total': 0, 'submitted': 0, 'percentage': 0};
+        final stats =
+            snapshot.data ?? {'total': 0, 'submitted': 0, 'percentage': 0};
         final total = stats['total'] ?? 0;
         final submitted = stats['submitted'] ?? 0;
         final percentage = stats['percentage'] ?? 0;
@@ -333,7 +394,9 @@ class _SubmissionStatTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title,
-                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -354,7 +417,10 @@ class _SubmissionStatTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 '$submitted / $total submissions',
-                style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54),
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 13,
+                  color: Colors.black54,
+                ),
               ),
             ],
           ),
@@ -382,7 +448,10 @@ class _ClassRow extends StatelessWidget {
               color: Colors.teal[50],
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(time, style: AppTextStyles.body.copyWith(color: Colors.teal[800])),
+            child: Text(
+              time,
+              style: AppTextStyles.body.copyWith(color: Colors.teal[800]),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -391,7 +460,10 @@ class _ClassRow extends StatelessWidget {
               style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.chevron_right_rounded)),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
         ],
       ),
     );

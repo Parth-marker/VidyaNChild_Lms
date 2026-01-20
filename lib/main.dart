@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => TeacherProvider()),
         ChangeNotifierProvider(create: (_) => TeacherSearchProvider()),
-        ChangeNotifierProvider(create: (_) => GeminiProvider()),
+        ChangeNotifierProvider(create: (_) => GeminiProvider()..init()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

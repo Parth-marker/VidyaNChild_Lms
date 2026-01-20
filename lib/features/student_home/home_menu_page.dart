@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lms_project/features/student_home/home_provider.dart';
+import 'package:lms_project/models/assignment_model.dart';
+import 'package:lms_project/models/timeline_model.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
 import 'package:lms_project/features/student_home/search_results_page.dart';
@@ -18,9 +20,7 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => context.read<HomeProvider>().loadHome(),
-    );
+    Future.microtask(() => context.read<HomeProvider>().loadHome());
   }
 
   @override
@@ -46,11 +46,16 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   String userName = 'Student';
-                  if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+                  if (snapshot.hasData &&
+                      snapshot.data != null &&
+                      snapshot.data!.exists) {
                     final data = snapshot.data!.data() as Map<String, dynamic>?;
                     userName = data?['name'] as String? ?? 'Student';
                   }
-                  return Text('Welcome back, $userName!', style: AppTextStyles.h1Teal);
+                  return Text(
+                    'Welcome back, $userName!',
+                    style: AppTextStyles.h1Teal,
+                  );
                 },
               )
             : Text('Welcome back!', style: AppTextStyles.h1Teal),
@@ -60,93 +65,102 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
         child: home.loading
             ? const Center(child: CircularProgressIndicator())
             : home.error != null
-                ? Center(child: Text(home.error!, style: AppTextStyles.body))
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            ? Center(child: Text(home.error!, style: AppTextStyles.body))
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SearchBar(
+                      onSearchTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SearchResultsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Today\'s Events',
                       children: [
-                        _SearchBar(onSearchTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => const SearchResultsPage()),
-                          );
-                        }),
-                        const SizedBox(height: 16),
-                        _SectionCard(
-                          title: 'Today\'s Events',
-                          children: (home.events.isNotEmpty
-                                  ? home.events
-                                  : [
-                                      {
-                                        'title': 'Math Worksheet',
-                                        'subtitle': 'Due today'
-                                      },
-                                      {
-                                        'title': 'Lesson Notes',
-                                        'subtitle': 'Due today'
-                                      }
-                                    ])
-                              .map((e) => _EventTile(
-                                    icon: Icons.description_outlined,
-                                    title: e['title'] as String,
-                                    subtitle: e['subtitle'] as String? ?? '',
-                                  ))
-                              .toList(),
-                        ),
-                        const SizedBox(height: 16),
-                        _SectionCard(
-                          title: 'Where you left off',
-                          children: [
-                            if (home.progress.isNotEmpty)
-                              _ProgressPreview(
-                                title: home.progress.first['title'] as String,
-                                subtitle: home.progress.first['subtitle']
-                                        as String? ??
-                                    '',
-                              )
-                            else
-                              const _ProgressPreview(
-                                title: 'Fractions & Decimals',
-                                subtitle: 'Math • Page 36 of 90',
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _SectionCard(
-                          title: 'Today\'s Timetable:',
-                          children: (home.timetable.isNotEmpty
-                                  ? home.timetable
-                                  : [
-                                      {
-                                        'time': '08:00',
-                                        'topic': 'Algebra: Linear Equations'
-                                      },
-                                      {
-                                        'time': '08:40',
-                                        'topic': 'Fractions & Decimals'
-                                      },
-                                      {
-                                        'time': '09:20',
-                                        'topic': 'Geometry: Triangles'
-                                      },
-                                      {
-                                        'time': '10:00',
-                                        'topic': 'Number Patterns'
-                                      },
-                                      {
-                                        'time': '10:40',
-                                        'topic': 'Quick Practice & Recap'
-                                      },
-                                    ])
-                              .map((c) => _ClassRow(
-                                  time: c['time'] as String,
-                                  topic: c['topic'] as String))
-                              .toList(),
+                        StreamBuilder<List<Assignment>>(
+                          stream: home.getAssignments(),
+                          builder: (context, snapshot) {
+                            final assessments = snapshot.data ?? [];
+                            if (assessments.isEmpty) {
+                              return Text(
+                                'No new assignments.',
+                                style: AppTextStyles.body.copyWith(
+                                  color: Colors.black54,
+                                ),
+                              );
+                            }
+                            return Column(
+                              children: assessments
+                                  .take(2)
+                                  .map(
+                                    (a) => _EventTile(
+                                      icon: Icons.assignment_outlined,
+                                      title: a.title,
+                                      subtitle:
+                                          'Due: ${a.dueDate.day}/${a.dueDate.month}',
+                                    ),
+                                  )
+                                  .toList(),
+                            );
+                          },
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Where you left off',
+                      children: [
+                        if (home.progress.isNotEmpty)
+                          _ProgressPreview(
+                            title: home.progress.first['title'] as String,
+                            subtitle:
+                                home.progress.first['subtitle'] as String? ??
+                                '',
+                          )
+                        else
+                          const _ProgressPreview(
+                            title: 'Fractions & Decimals',
+                            subtitle: 'Math • Page 36 of 90',
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Today\'s Timetable:',
+                      children: [
+                        StreamBuilder<List<TimelineEvent>>(
+                          stream: home.getTodayTimetable(),
+                          builder: (context, snapshot) {
+                            final events = snapshot.data ?? [];
+                            if (events.isEmpty) {
+                              return Text(
+                                'No classes today.',
+                                style: AppTextStyles.body.copyWith(
+                                  color: Colors.black54,
+                                ),
+                              );
+                            }
+                            return Column(
+                              children: events.map((e) {
+                                final time =
+                                    '${e.date.hour.toString().padLeft(2, '0')}:${e.date.minute.toString().padLeft(2, '0')}';
+                                return _ClassRow(time: time, topic: e.title);
+                              }).toList(),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
       ),
       bottomNavigationBar: const AppBottomNavBar(currentIndex: 0),
     );
@@ -197,7 +211,10 @@ class _SearchBar extends StatelessWidget {
       onTap: onSearchTap,
       decoration: InputDecoration(
         hintText: 'Search for math lesson materials',
-        hintStyle: AppTextStyles.body.copyWith(color: Colors.black45, fontSize: 14),
+        hintStyle: AppTextStyles.body.copyWith(
+          color: Colors.black45,
+          fontSize: 14,
+        ),
         prefixIcon: IconButton(
           icon: const Icon(Icons.search, color: Colors.teal),
           onPressed: onSearchTap,
@@ -208,7 +225,10 @@ class _SearchBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 14,
+          horizontal: 18,
+        ),
       ),
     );
   }
@@ -218,19 +238,41 @@ class _EventTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  const _EventTile({required this.icon, required this.title, required this.subtitle});
+  const _EventTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(backgroundColor: Colors.teal[50], child: Icon(icon, color: Colors.teal)),
-      title: Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
+      leading: CircleAvatar(
+        backgroundColor: Colors.teal[50],
+        child: Icon(icon, color: Colors.teal),
+      ),
+      title: Text(
+        title,
+        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54),
+      ),
       trailing: ElevatedButton(
         onPressed: () {},
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[300], minimumSize: const Size(80, 38), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-        child: Text('Open', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.purple[300],
+          minimumSize: const Size(80, 38),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Text(
+          'Open',
+          style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14),
+        ),
       ),
     );
   }
@@ -254,17 +296,37 @@ class _ProgressPreview extends StatelessWidget {
           Container(
             width: 58,
             height: 58,
-            decoration: BoxDecoration(color: Colors.teal[100], borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: Colors.teal[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: const Icon(Icons.menu_book_rounded, color: Colors.teal),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-              Text(subtitle, style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.play_circle_outline, color: Colors.purple)),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.play_circle_outline, color: Colors.purple),
+          ),
         ],
       ),
     );
@@ -284,15 +346,28 @@ class _ClassRow extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(color: Colors.teal[50], borderRadius: BorderRadius.circular(10)),
-            child: Text(time, style: AppTextStyles.body.copyWith(color: Colors.teal[800])),
+            decoration: BoxDecoration(
+              color: Colors.teal[50],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              time,
+              style: AppTextStyles.body.copyWith(color: Colors.teal[800]),
+            ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(topic, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600))),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.chevron_right_rounded)),
+          Expanded(
+            child: Text(
+              topic,
+              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
         ],
       ),
     );
   }
 }
-

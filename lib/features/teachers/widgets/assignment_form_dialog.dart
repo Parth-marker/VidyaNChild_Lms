@@ -19,7 +19,7 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
   late TextEditingController _messageController;
   late TextEditingController _contentController;
   late TextEditingController _submissionDateController;
-  
+
   String _assignmentType = 'Worksheet';
   DateTime? _submissionDate;
   List<QuizQuestion>? _quizQuestions;
@@ -30,10 +30,14 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.assignment?['title'] ?? '');
-    _messageController = TextEditingController(text: widget.assignment?['message'] ?? '');
+    _nameController = TextEditingController(
+      text: widget.assignment?['title'] ?? '',
+    );
+    _messageController = TextEditingController(
+      text: widget.assignment?['message'] ?? '',
+    );
     _assignmentType = widget.assignment?['assignmentType'] ?? 'Worksheet';
-    
+
     // Initialize content based on assignment type
     if (_assignmentType == 'Quiz') {
       // Parse quiz questions from content if it exists
@@ -51,9 +55,11 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
       _quizBuilderKey ??= GlobalKey<QuizQuestionBuilderState>();
       _contentController = TextEditingController(); // Not used for Quiz
     } else {
-      _contentController = TextEditingController(text: widget.assignment?['content'] ?? '');
+      _contentController = TextEditingController(
+        text: widget.assignment?['content'] ?? '',
+      );
     }
-    
+
     if (widget.assignment?['submissionDate'] != null) {
       final submissionDateValue = widget.assignment!['submissionDate'];
       if (submissionDateValue is Timestamp) {
@@ -86,14 +92,17 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _submissionDate ?? DateTime.now().add(const Duration(days: 7)),
+      initialDate:
+          _submissionDate ?? DateTime.now().add(const Duration(days: 7)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
       setState(() {
         _submissionDate = picked;
-        _submissionDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _submissionDateController.text = DateFormat(
+          'yyyy-MM-dd',
+        ).format(picked);
       });
     }
   }
@@ -102,16 +111,18 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    
+
     // Validate Quiz questions if Quiz type
     if (_assignmentType == 'Quiz') {
       if (_quizBuilderKey?.currentState == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add at least one quiz question')),
+          const SnackBar(
+            content: Text('Please add at least one quiz question'),
+          ),
         );
         return;
       }
-      
+
       if (!_quizBuilderKey!.currentState!.validateQuestions()) {
         return;
       }
@@ -124,16 +135,19 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
         return;
       }
     }
-    
+
     // Require submission date for Worksheets and Quizzes when publishing
-    if ((_assignmentType == 'Worksheet' || _assignmentType == 'Quiz') && 
-        _submissionDate == null && publish) {
+    if ((_assignmentType == 'Worksheet' || _assignmentType == 'Quiz') &&
+        _submissionDate == null &&
+        publish) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a submission date for $_assignmentType')),
+        SnackBar(
+          content: Text('Please select a submission date for $_assignmentType'),
+        ),
       );
       return;
     }
-    
+
     // Prepare content based on assignment type
     String content;
     if (_assignmentType == 'Quiz') {
@@ -143,14 +157,14 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
     } else {
       content = _contentController.text.trim();
     }
-    
+
     Navigator.of(context).pop({
       'title': _nameController.text.trim(),
       'message': _messageController.text.trim(),
       'content': content,
       'assignmentType': _assignmentType,
       'submissionDate': _submissionDate, // Can be null for lessons
-      'status': publish ? 'published' : 'draft',
+      'isPublished': publish,
       'publish': publish,
     });
   }
@@ -220,7 +234,9 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
                       const SizedBox(height: 16),
                       Text(
                         'Assignment Type *',
-                        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -251,7 +267,8 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
                                   setState(() {
                                     _assignmentType = 'Quiz';
                                     _contentController.clear();
-                                    _quizBuilderKey = GlobalKey<QuizQuestionBuilderState>();
+                                    _quizBuilderKey =
+                                        GlobalKey<QuizQuestionBuilderState>();
                                     _quizQuestions ??= [];
                                   });
                                 }
@@ -284,7 +301,8 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
                       ),
                       const SizedBox(height: 16),
                       // Show submission date field for Worksheets and Quizzes
-                      if (_assignmentType == 'Worksheet' || _assignmentType == 'Quiz') ...[
+                      if (_assignmentType == 'Worksheet' ||
+                          _assignmentType == 'Quiz') ...[
                         TextFormField(
                           controller: _submissionDateController,
                           readOnly: true,
@@ -353,7 +371,9 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
                             child: OutlinedButton(
                               onPressed: () => _submit(publish: false),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -377,7 +397,9 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
                               onPressed: () => _submit(publish: true),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.teal[400],
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -401,4 +423,3 @@ class _AssignmentFormDialogState extends State<AssignmentFormDialog> {
     );
   }
 }
-

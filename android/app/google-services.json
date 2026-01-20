@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "291416133834",
+    "firebase_url": "https://vidyanchild-lms-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "vidyanchild-lms",
     "storage_bucket": "vidyanchild-lms.firebasestorage.app"
   },
