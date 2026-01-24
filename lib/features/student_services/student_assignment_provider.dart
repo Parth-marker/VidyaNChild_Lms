@@ -17,7 +17,7 @@ class StudentAssignmentProvider extends ChangeNotifier {
   String? get _email => _auth.currentUser?.email;
 
   // Check if current user is the test student
-  bool get _isTestStudent => _email == 'parthvermablue@gmail.com';
+  // bool get _isTestStudent => _email == 'parthvermablue@gmail.com';
 
   // Get all published assignments
   // For now, show all published assignments if user is test student
@@ -33,10 +33,10 @@ class StudentAssignmentProvider extends ChangeNotifier {
       return _assignmentsStream!;
     }
 
-    if (!_isTestStudent) {
-      _assignmentsStream = Stream.value([]);
-      return _assignmentsStream!;
-    }
+    // if (!_isTestStudent) {
+    //   _assignmentsStream = Stream.value([]);
+    //   return _assignmentsStream!;
+    // }
 
     // Create stream without orderBy to avoid index issues
     // We'll sort manually in the map function
@@ -45,26 +45,23 @@ class StudentAssignmentProvider extends ChangeNotifier {
         .where('status', isEqualTo: 'published')
         .snapshots()
         .map((snap) {
-      final docs = snap.docs.map((d) {
-        final data = d.data();
-        return {
-          ...data,
-          'id': d.id,
-        };
-      }).toList();
-      
-      // Sort manually by createdAt if available (newest first)
-      docs.sort((a, b) {
-        final aTime = a['createdAt'] as Timestamp?;
-        final bTime = b['createdAt'] as Timestamp?;
-        if (aTime == null && bTime == null) return 0;
-        if (aTime == null) return 1;
-        if (bTime == null) return -1;
-        return bTime.compareTo(aTime);
-      });
-      
-      return docs;
-    });
+          final docs = snap.docs.map((d) {
+            final data = d.data();
+            return {...data, 'id': d.id};
+          }).toList();
+
+          // Sort manually by createdAt if available (newest first)
+          docs.sort((a, b) {
+            final aTime = a['createdAt'] as Timestamp?;
+            final bTime = b['createdAt'] as Timestamp?;
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return 1;
+            if (bTime == null) return -1;
+            return bTime.compareTo(aTime);
+          });
+
+          return docs;
+        });
 
     return _assignmentsStream!;
   }
@@ -74,10 +71,7 @@ class StudentAssignmentProvider extends ChangeNotifier {
     try {
       final doc = await _db.collection('assignments').doc(assignmentId).get();
       if (doc.exists) {
-        return {
-          ...doc.data()!,
-          'id': doc.id,
-        };
+        return {...doc.data()!, 'id': doc.id};
       }
       return null;
     } catch (e) {
@@ -136,12 +130,9 @@ class StudentAssignmentProvider extends ChangeNotifier {
           if (bTime == null) return -1;
           return bTime.compareTo(aTime);
         });
-        
+
         final doc = docs.first;
-        return {
-          ...doc.data(),
-          'id': doc.id,
-        };
+        return {...doc.data(), 'id': doc.id};
       }
       return null;
     } catch (e) {
@@ -159,11 +150,11 @@ class StudentAssignmentProvider extends ChangeNotifier {
     required List<int> selectedAnswers,
     int? timeTaken,
   }) async {
-    if (!_isTestStudent) {
-      error = 'Only test student can submit quizzes';
-      notifyListeners();
-      return null;
-    }
+    // if (!_isTestStudent) {
+    //   error = 'Only test student can submit quizzes';
+    //   notifyListeners();
+    //   return null;
+    // }
 
     loading = true;
     error = null;
@@ -212,7 +203,9 @@ class StudentAssignmentProvider extends ChangeNotifier {
         if (timeTaken != null) 'timeTaken': timeTaken,
       };
 
-      final docRef = await _db.collection('quizSubmissions').add(submissionData);
+      final docRef = await _db
+          .collection('quizSubmissions')
+          .add(submissionData);
 
       // Also create/update a general submission record for teacher stats
       await _db.collection('submissions').add({
@@ -246,7 +239,7 @@ class StudentAssignmentProvider extends ChangeNotifier {
     if (_uid.isEmpty) {
       return Stream.value([]);
     }
-    
+
     return _db
         .collection('quizSubmissions')
         .where('studentId', isEqualTo: _uid)
@@ -254,12 +247,9 @@ class StudentAssignmentProvider extends ChangeNotifier {
         .map((snap) {
           final docs = snap.docs.map((d) {
             final data = d.data();
-            return {
-              ...data,
-              'id': d.id,
-            };
+            return {...data, 'id': d.id};
           }).toList();
-          
+
           // Sort manually by submittedAt if available (newest first)
           docs.sort((a, b) {
             final aTime = a['submittedAt'] as Timestamp?;
@@ -269,16 +259,16 @@ class StudentAssignmentProvider extends ChangeNotifier {
             if (bTime == null) return -1;
             return bTime.compareTo(aTime);
           });
-          
+
           return docs;
         });
   }
 
   // Get top 2 recent published worksheets and lessons
   Stream<List<Map<String, dynamic>>> getRecentWorksheetsAndLessons() {
-    if (!_isTestStudent) {
-      return Stream.value([]);
-    }
+    // if (!_isTestStudent) {
+    //   return Stream.value([]);
+    // }
 
     return _db
         .collection('assignments')
@@ -287,18 +277,15 @@ class StudentAssignmentProvider extends ChangeNotifier {
         .map((snap) {
           final docs = snap.docs.map((d) {
             final data = d.data();
-            return {
-              ...data,
-              'id': d.id,
-            };
+            return {...data, 'id': d.id};
           }).toList();
-          
+
           // Filter for Worksheets and Lessons only
           final worksheetsAndLessons = docs.where((a) {
             final type = a['assignmentType'] as String?;
             return type == 'Worksheet' || type == 'Lesson';
           }).toList();
-          
+
           // Sort manually by createdAt if available (newest first)
           worksheetsAndLessons.sort((a, b) {
             final aTime = a['createdAt'] as Timestamp?;
@@ -308,10 +295,9 @@ class StudentAssignmentProvider extends ChangeNotifier {
             if (bTime == null) return -1;
             return bTime.compareTo(aTime);
           });
-          
+
           // Return top 2
           return worksheetsAndLessons.take(2).toList();
         });
   }
 }
-
