@@ -17,6 +17,12 @@ class AppTextStyles {
         color: Colors.purple,
       );
 
+  static TextStyle get h2 => GoogleFonts.poppins(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: Colors.teal[800],
+      );
+
   // Body / Paragraph
   static TextStyle get body => GoogleFonts.poppins(
         fontSize: 16,
