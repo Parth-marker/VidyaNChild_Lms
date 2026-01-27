@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
 import 'package:lms_project/features/games/quick_math_challenge_page.dart';
+import 'package:lms_project/features/games/number_sequence_intro_page.dart';
 import 'package:lms_project/features/games/quiz_storage.dart';
 
 class MathPuzzlesPage extends StatefulWidget {
@@ -14,6 +15,8 @@ class MathPuzzlesPage extends StatefulWidget {
 class _MathPuzzlesPageState extends State<MathPuzzlesPage> {
   int? bestScore;
   String? bestBadge;
+  int? seqBestScore;
+  String? seqBestBadge;
 
   @override
   void initState() {
@@ -24,10 +27,14 @@ class _MathPuzzlesPageState extends State<MathPuzzlesPage> {
   Future<void> _loadBestResult() async {
     final score = await QuizStorage.getBestScore();
     final badge = await QuizStorage.getBestBadge();
+    final seqScore = await QuizStorage.getSequenceBestScore();
+    final seqBadge = await QuizStorage.getSequenceBestBadge();
     
     setState(() {
       bestScore = score;
       bestBadge = badge;
+      seqBestScore = seqScore;
+      seqBestBadge = seqBadge;
     });
   }
 
@@ -65,7 +72,7 @@ class _MathPuzzlesPageState extends State<MathPuzzlesPage> {
             Text('Choose a game', style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
             const SizedBox(height: 16),
             _PuzzleCard(
-              title: 'Quick Math Challenge',
+              title: 'Math Blitz',
               description: 'Test your skills with a series of quick math problems. Score points for each correct answer.',
               icon: Icons.flash_on,
               iconColor: Colors.teal,
@@ -82,19 +89,28 @@ class _MathPuzzlesPageState extends State<MathPuzzlesPage> {
                 }
               },
               getBadgeColor: _getBadgeColor,
+              maxScore: 15,
             ),
             const SizedBox(height: 16),
             _PuzzleCard(
-              title: 'Number Sequence',
-              description: 'Complete the number sequence by finding the missing values.',
+              title: 'Pattern Hunt',
+              description: 'Recognise patterns in number sequences and fill in the missing term.',
               icon: Icons.numbers,
               iconColor: Colors.purple,
-              score: null,
-              badge: null,
-              onTap: () {
-                // Number Sequence game not yet implemented
+              score: seqBestScore,
+              badge: seqBestBadge,
+              onTap: () async {
+                final result = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NumberSequenceIntroPage(),
+                  ),
+                );
+                if (result == true) {
+                  _loadBestResult();
+                }
               },
               getBadgeColor: _getBadgeColor,
+              maxScore: 20,
             ),
           ],
         ),
@@ -113,6 +129,7 @@ class _PuzzleCard extends StatelessWidget {
   final String? badge;
   final VoidCallback? onTap;
   final Color Function(String?) getBadgeColor;
+  final int maxScore;
 
   const _PuzzleCard({
     required this.title,
@@ -123,6 +140,7 @@ class _PuzzleCard extends StatelessWidget {
     this.badge,
     this.onTap,
     required this.getBadgeColor,
+    required this.maxScore,
   });
 
   @override
@@ -187,7 +205,7 @@ class _PuzzleCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '$score/15',
+                          '$score/$maxScore',
                           style: AppTextStyles.body.copyWith(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,

@@ -19,18 +19,28 @@ class HomeMenuPage extends StatefulWidget {
 
 class _HomeMenuPageState extends State<HomeMenuPage> {
   Future<Map<String, dynamic>> _getLatestPuzzleScore() async {
-    final score = await QuizStorage.getBestScore();
-    final time = await QuizStorage.getBestTime();
-    final badge = await QuizStorage.getBestBadge();
-    
-    if (score != null && time != null && badge != null) {
-      return {
-        'score': score,
-        'time': time,
-        'badge': badge,
-      };
+    final quickScore = await QuizStorage.getBestScore();
+    final quickTime = await QuizStorage.getBestTime();
+    final quickBadge = await QuizStorage.getBestBadge();
+
+    final seqScore = await QuizStorage.getSequenceBestScore();
+    final seqBadge = await QuizStorage.getSequenceBestBadge();
+
+    if (quickScore == null &&
+        quickTime == null &&
+        quickBadge == null &&
+        seqScore == null &&
+        seqBadge == null) {
+      return {};
     }
-    return {};
+
+    return {
+      'quickScore': quickScore,
+      'quickTime': quickTime,
+      'quickBadge': quickBadge,
+      'seqScore': seqScore,
+      'seqBadge': seqBadge,
+    };
   }
 
   @override
@@ -83,13 +93,18 @@ class _HomeMenuPageState extends State<HomeMenuPage> {
                           builder: (context, puzzleSnapshot) {
                             if (puzzleSnapshot.hasData && puzzleSnapshot.data != null) {
                               final puzzleData = puzzleSnapshot.data!;
+                              if (puzzleData.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
                               return _SectionCard(
-                                title: 'Latest Puzzle Score',
+                                title: 'Latest Puzzle Scores',
                                 children: [
                                   _PuzzleScoreTile(
-                                    score: puzzleData['score'] as int?,
-                                    time: puzzleData['time'] as int?,
-                                    badge: puzzleData['badge'] as String?,
+                                    quickScore: puzzleData['quickScore'] as int?,
+                                    quickTime: puzzleData['quickTime'] as int?,
+                                    quickBadge: puzzleData['quickBadge'] as String?,
+                                    seqScore: puzzleData['seqScore'] as int?,
+                                    seqBadge: puzzleData['seqBadge'] as String?,
                                   ),
                                 ],
                               );
@@ -319,14 +334,18 @@ class _SubmissionTile extends StatelessWidget {
 }
 
 class _PuzzleScoreTile extends StatelessWidget {
-  final int? score;
-  final int? time;
-  final String? badge;
+  final int? quickScore;
+  final int? quickTime;
+  final String? quickBadge;
+  final int? seqScore;
+  final String? seqBadge;
 
   const _PuzzleScoreTile({
-    required this.score,
-    required this.time,
-    required this.badge,
+    required this.quickScore,
+    required this.quickTime,
+    required this.quickBadge,
+    required this.seqScore,
+    required this.seqBadge,
   });
 
   String _formatTime(int seconds) {
@@ -353,7 +372,7 @@ class _PuzzleScoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (score == null || time == null) {
+    if ((quickScore == null || quickTime == null) && seqScore == null) {
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
@@ -386,51 +405,101 @@ class _PuzzleScoreTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Quick Math Challenge',
-                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Math Blitz',
+                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    if (quickBadge != null && quickBadge!.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getBadgeColor(quickBadge).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _getBadgeColor(quickBadge), width: 2),
+                        ),
+                        child: Text(
+                          quickBadge!.toUpperCase(),
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _getBadgeColor(quickBadge),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Text(
-                      'Score: $score/15',
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 13,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
+                    if (quickScore != null && quickTime != null) ...[
+                      Text(
+                        'Score: $quickScore/15',
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Time: ${_formatTime(time!)}',
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 13,
-                        color: Colors.black54,
+                      const SizedBox(width: 12),
+                      Text(
+                        'Time: ${_formatTime(quickTime!)}',
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
                       ),
-                    ),
+                    ] else
+                      Text(
+                        'No score yet',
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                      ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Pattern Hunt',
+                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    if (seqBadge != null && seqBadge!.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getBadgeColor(seqBadge).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _getBadgeColor(seqBadge), width: 2),
+                        ),
+                        child: Text(
+                          seqBadge!.toUpperCase(),
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _getBadgeColor(seqBadge),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  seqScore != null ? 'Score: $seqScore/20' : 'No score yet',
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
-          if (badge != null && badge!.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: _getBadgeColor(badge).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _getBadgeColor(badge), width: 2),
-              ),
-              child: Text(
-                badge!.toUpperCase(),
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: _getBadgeColor(badge),
-                ),
-              ),
-            ),
         ],
       ),
     );

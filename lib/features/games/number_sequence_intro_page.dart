@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/features/games/quiz_storage.dart';
-import 'package:lms_project/features/games/quiz_game_page.dart';
+import 'package:lms_project/features/games/number_sequence_game_page.dart';
 
-class QuickMathChallengePage extends StatefulWidget {
-  const QuickMathChallengePage({super.key});
+class NumberSequenceIntroPage extends StatefulWidget {
+  const NumberSequenceIntroPage({super.key});
 
   @override
-  State<QuickMathChallengePage> createState() => _QuickMathChallengePageState();
+  State<NumberSequenceIntroPage> createState() =>
+      _NumberSequenceIntroPageState();
 }
 
-class _QuickMathChallengePageState extends State<QuickMathChallengePage> {
+class _NumberSequenceIntroPageState extends State<NumberSequenceIntroPage> {
   int? bestTime;
   int? bestScore;
   String? bestBadge;
@@ -22,10 +23,10 @@ class _QuickMathChallengePageState extends State<QuickMathChallengePage> {
   }
 
   Future<void> _loadBestResult() async {
-    final time = await QuizStorage.getBestTime();
-    final score = await QuizStorage.getBestScore();
-    final badge = await QuizStorage.getBestBadge();
-    
+    final time = await QuizStorage.getSequenceBestTime();
+    final score = await QuizStorage.getSequenceBestScore();
+    final badge = await QuizStorage.getSequenceBestBadge();
+
     setState(() {
       bestTime = time;
       bestScore = score;
@@ -41,7 +42,7 @@ class _QuickMathChallengePageState extends State<QuickMathChallengePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
-        title: Text('Math Blitz', style: AppTextStyles.h1Teal),
+        title: Text('Pattern Hunt', style: AppTextStyles.h1Teal),
       ),
       body: SafeArea(
         child: Padding(
@@ -50,58 +51,50 @@ class _QuickMathChallengePageState extends State<QuickMathChallengePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-              // Game Icon/Title
               Icon(
-                Icons.flash_on,
+                Icons.question_mark,
                 size: 80,
-                color: Colors.teal[400],
+                color: Colors.purple[400],
               ),
               const SizedBox(height: 16),
               Text(
-                'Math Blitz',
+                'Pattern Hunt',
                 style: AppTextStyles.h1Purple.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                '15 Questions • Beat the Clock!',
-                style: AppTextStyles.body.copyWith(fontSize: 16, color: Colors.black54),
+                '20 questions • Spot the missing term!',
+                style: AppTextStyles.body
+                    .copyWith(fontSize: 16, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
-              
+
               // Best Score Display
-              if (bestTime != null && bestScore != null && bestBadge != null)
-                _BestScoreCard(
-                  time: bestTime!,
-                  score: bestScore!,
-                  badge: bestBadge!,
-                )
-              else
-                _BestScoreCard(
-                  time: null,
-                  score: null,
-                  badge: null,
-                ),
-              
+              _BestSequenceScoreCard(
+                time: bestTime,
+                score: bestScore,
+                badge: bestBadge,
+              ),
+
               const SizedBox(height: 48),
-              
+
               // Play Button
               ElevatedButton(
                 onPressed: () async {
                   final result = await Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const QuizGamePage(),
+                      builder: (_) => const NumberSequenceGamePage(),
                     ),
                   );
-                  
-                  // Reload best result after game
+
                   if (result == true) {
                     _loadBestResult();
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal[400],
+                  backgroundColor: Colors.purple[400],
                   minimumSize: const Size(double.infinity, 60),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -111,10 +104,11 @@ class _QuickMathChallengePageState extends State<QuickMathChallengePage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.play_arrow, color: Colors.white, size: 28),
+                    const Icon(Icons.play_arrow,
+                        color: Colors.white, size: 28),
                     const SizedBox(width: 8),
                     Text(
-                      'Start Challenge',
+                      'Start Puzzle',
                       style: AppTextStyles.buttonPrimary.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -123,23 +117,24 @@ class _QuickMathChallengePageState extends State<QuickMathChallengePage> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Instructions
+
+              // Instructions / Medal requirements
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal[100]!),
+                  border: Border.all(color: Colors.purple[100]!),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.teal[400], size: 20),
+                        Icon(Icons.info_outline,
+                            color: Colors.purple[400], size: 20),
                         const SizedBox(width: 8),
                         Text(
                           'How to Play',
@@ -151,10 +146,27 @@ class _QuickMathChallengePageState extends State<QuickMathChallengePage> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _InstructionItem('Answer 15 random questions'),
-                    _InstructionItem('Complete as fast as you can'),
-                    _InstructionItem('Badges are based on performance: score × (1 + time bonus)'),
-                    _InstructionItem('Gold: ≥22 • Silver: ≥15 • Bronze: ≥8'),
+                    _InstructionItem('Answer 20 pattern-recognition questions'),
+                    _InstructionItem(
+                        'First 12 are medium, last 8 are hard difficulty'),
+                    _InstructionItem(
+                        'Each correct answer gives 1 point (max 20)'),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Medal Requirements',
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _InstructionItem(
+                        'Gold: ≥18 correct AND finished in ≤5 minutes'),
+                    _InstructionItem(
+                        'Silver: ≥15 correct AND finished in ≤8 minutes'),
+                    _InstructionItem(
+                        'Bronze: ≥12 correct AND finished in ≤10 minutes'),
+                    _InstructionItem('Below this: Grey'),
                   ],
                 ),
               ),
@@ -167,12 +179,12 @@ class _QuickMathChallengePageState extends State<QuickMathChallengePage> {
   }
 }
 
-class _BestScoreCard extends StatelessWidget {
+class _BestSequenceScoreCard extends StatelessWidget {
   final int? time;
   final int? score;
   final String? badge;
 
-  const _BestScoreCard({
+  const _BestSequenceScoreCard({
     required this.time,
     required this.score,
     required this.badge,
@@ -180,7 +192,7 @@ class _BestScoreCard extends StatelessWidget {
 
   Color _getBadgeColor() {
     if (badge == null) return const Color(0xFF808080); // Grey
-    
+
     switch (badge!.toLowerCase()) {
       case 'gold':
         return const Color(0xFFFFD700);
@@ -218,7 +230,7 @@ class _BestScoreCard extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Best Round',
+            'Best Attempt',
             style: AppTextStyles.body.copyWith(
               color: Colors.white,
               fontSize: 14,
@@ -230,7 +242,7 @@ class _BestScoreCard extends StatelessWidget {
             Column(
               children: [
                 Text(
-                  '${score}/15',
+                  '${score}/20',
                   style: AppTextStyles.h1Purple.copyWith(
                     color: Colors.white,
                     fontSize: 32,
@@ -276,7 +288,7 @@ class _BestScoreCard extends StatelessWidget {
 
 class _InstructionItem extends StatelessWidget {
   final String text;
-  
+
   const _InstructionItem(this.text);
 
   @override
@@ -289,7 +301,7 @@ class _InstructionItem extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: Colors.teal[400],
+              color: Colors.purple[400],
               shape: BoxShape.circle,
             ),
           ),
@@ -305,4 +317,5 @@ class _InstructionItem extends StatelessWidget {
     );
   }
 }
+
 

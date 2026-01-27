@@ -264,6 +264,36 @@ class StudentAssignmentProvider extends ChangeNotifier {
         });
   }
 
+  // Get general submissions (quizzes, worksheets, etc.) for current student
+  Stream<List<Map<String, dynamic>>> getMySubmissions() {
+    if (_uid.isEmpty) {
+      return Stream.value([]);
+    }
+
+    return _db
+        .collection('submissions')
+        .where('studentId', isEqualTo: _uid)
+        .snapshots()
+        .map((snap) {
+          final docs = snap.docs.map((d) {
+            final data = d.data();
+            return {...data, 'id': d.id};
+          }).toList();
+
+          // Sort manually by submittedAt if available (newest first)
+          docs.sort((a, b) {
+            final aTime = a['submittedAt'] as Timestamp?;
+            final bTime = b['submittedAt'] as Timestamp?;
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return 1;
+            if (bTime == null) return -1;
+            return bTime.compareTo(aTime);
+          });
+
+          return docs;
+        });
+  }
+
   // Get top 2 recent published worksheets and lessons
   Stream<List<Map<String, dynamic>>> getRecentWorksheetsAndLessons() {
     // if (!_isTestStudent) {
