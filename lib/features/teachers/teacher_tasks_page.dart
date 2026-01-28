@@ -5,6 +5,7 @@ import 'package:lms_project/features/teachers/teacher_bottom_nav.dart';
 import 'package:lms_project/features/teachers/teacher_provider.dart';
 import 'package:lms_project/features/teachers/widgets/assignment_form_dialog.dart';
 import 'package:lms_project/features/teachers/widgets/quiz_question_builder.dart';
+import 'package:lms_project/features/teachers/worksheet_submissions_page.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
 
@@ -803,6 +804,25 @@ class _PublishedAssignmentTileState extends State<_PublishedAssignmentTile> {
                       color: Colors.black54,
                     ),
                   ),
+                  if (assignmentType == 'Worksheet') ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => WorksheetSubmissionsPage(
+                                assignmentId: assignmentId,
+                                assignmentTitle: title,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('View submissions'),
+                      ),
+                    ),
+                  ],
                   if (_isExpanded) ...[
                     const SizedBox(height: 12),
                     const Divider(),

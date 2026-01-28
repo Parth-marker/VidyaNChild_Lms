@@ -44,9 +44,12 @@ dependencies:
   firebase_core:
   firebase_auth:
   cloud_firestore:
+  firebase_storage:
   provider:
   shared_preferences: ^2.2.2
   intl: ^0.19.0
+  file_picker: ^8.0.0
+  url_launcher:
 
 dev_dependencies:
   flutter_test:

@@ -1,12 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:lms_project/features/teachers/widgets/quiz_question_builder.dart';
 
 class StudentAssignmentProvider extends ChangeNotifier {
   final _db = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
+  final _storage = FirebaseStorage.instance;
 
   bool loading = false;
   String? error;
@@ -329,5 +332,87 @@ class StudentAssignmentProvider extends ChangeNotifier {
           // Return top 2
           return worksheetsAndLessons.take(2).toList();
         });
+  }
+
+  // Get existing worksheet submission (if any) for current student
+  Future<Map<String, dynamic>?> getWorksheetSubmission(
+      String assignmentId) async {
+    if (_uid.isEmpty) return null;
+    try {
+      final snapshot = await _db
+          .collection('submissions')
+          .where('assignmentId', isEqualTo: assignmentId)
+          .where('studentId', isEqualTo: _uid)
+          .where('assignmentType', isEqualTo: 'Worksheet')
+          .limit(1)
+          .get();
+      if (snapshot.docs.isEmpty) return null;
+      final doc = snapshot.docs.first;
+      return {...doc.data(), 'id': doc.id};
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  // Submit a worksheet file for the current student
+  Future<Map<String, dynamic>?> submitWorksheet({
+    required String assignmentId,
+    required String teacherId,
+    required String localPath,
+    required String fileName,
+  }) async {
+    if (_uid.isEmpty) return null;
+
+    loading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final file = File(localPath);
+      if (!await file.exists()) {
+        throw Exception('Selected file not found on device');
+      }
+
+      final storageRef = _storage
+          .ref()
+          .child('worksheetSubmissions')
+          .child(assignmentId)
+          .child(_uid)
+          .child(fileName);
+
+      final uploadTask = await storageRef.putFile(file);
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      final submissionData = {
+        'assignmentId': assignmentId,
+        'studentId': _uid,
+        'teacherId': teacherId,
+        'assignmentType': 'Worksheet',
+        'status': 'submitted',
+        'fileName': fileName,
+        'fileUrl': downloadUrl,
+        'submittedAt': FieldValue.serverTimestamp(),
+        // score field can be added/updated later by teacher
+      };
+
+      final docRef =
+          await _db.collection('submissions').add(submissionData);
+
+      loading = false;
+      notifyListeners();
+
+      return {
+        ...submissionData,
+        'id': docRef.id,
+        'submittedAt': Timestamp.now(),
+      };
+    } catch (e) {
+      error = e.toString();
+      loading = false;
+      notifyListeners();
+      return null;
+    }
   }
 }

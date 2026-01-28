@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:lms_project/theme/app_text_styles.dart';
 import 'package:lms_project/theme/app_bottom_nav.dart';
 import 'package:lms_project/features/student_services/student_assignment_provider.dart';
@@ -352,11 +353,17 @@ class _WorksheetAssignmentTile extends StatefulWidget {
 
 class _WorksheetAssignmentTileState extends State<_WorksheetAssignmentTile> {
   bool _isExpanded = false;
+  bool _isSubmitting = false;
+  bool _hasSubmitted = false;
+  String? _existingFileName;
+  String? _selectedFilePath;
+  String? _selectedFileName;
 
   @override
   void initState() {
     super.initState();
     _isExpanded = widget.initiallyExpanded;
+    _loadExistingSubmission();
   }
 
   String _formatDueDate(dynamic submissionDate) {
@@ -372,6 +379,98 @@ class _WorksheetAssignmentTileState extends State<_WorksheetAssignmentTile> {
       return DateFormat('MMM dd, yyyy').format(date);
     } catch (e) {
       return 'Invalid date';
+    }
+  }
+
+  Future<void> _loadExistingSubmission() async {
+    final provider = context.read<StudentAssignmentProvider>();
+    final assignmentId = widget.assignment['id'] as String? ?? '';
+    if (assignmentId.isEmpty) return;
+
+    final submission =
+        await provider.getWorksheetSubmission(assignmentId);
+    if (!mounted) return;
+
+    if (submission != null) {
+      setState(() {
+        _hasSubmitted = true;
+        _existingFileName = submission['fileName'] as String?;
+      });
+    }
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      withReadStream: false,
+      allowMultiple: false,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.first;
+    if (file.path == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to access selected file path')),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedFilePath = file.path;
+      _selectedFileName = file.name;
+    });
+  }
+
+  Future<void> _submitWorksheet() async {
+    if (_selectedFilePath == null || _selectedFileName == null) return;
+
+    final assignmentId = widget.assignment['id'] as String? ?? '';
+    final teacherId = widget.assignment['teacherId'] as String? ?? '';
+    if (assignmentId.isEmpty || teacherId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to submit: assignment information missing'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final provider = context.read<StudentAssignmentProvider>();
+    final result = await provider.submitWorksheet(
+      assignmentId: assignmentId,
+      teacherId: teacherId,
+      localPath: _selectedFilePath!,
+      fileName: _selectedFileName!,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSubmitting = false;
+    });
+
+    if (result != null) {
+      setState(() {
+        _hasSubmitted = true;
+        _existingFileName = _selectedFileName;
+        _selectedFileName = null;
+        _selectedFilePath = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Worksheet submitted!')),
+      );
+    } else {
+      final error = provider.error ?? 'Failed to submit worksheet';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
     }
   }
 
@@ -464,6 +563,99 @@ class _WorksheetAssignmentTileState extends State<_WorksheetAssignmentTile> {
                         style: AppTextStyles.body.copyWith(fontSize: 14),
                       ),
                     ),
+                  ],
+                  const SizedBox(height: 16),
+                  if (_hasSubmitted) ...[
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green[600]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _existingFileName != null
+                                ? 'Submitted: $_existingFileName'
+                                : 'Worksheet already submitted',
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 13,
+                              color: Colors.green[800],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Text(
+                      'Submit your completed worksheet as a file from your phone.',
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _isSubmitting ? null : _pickFile,
+                            icon: const Icon(Icons.upload_file),
+                            label: Text(
+                              _selectedFileName == null
+                                  ? 'Upload file'
+                                  : 'Change file',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_selectedFileName != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.insert_drive_file,
+                              size: 18, color: Colors.black54),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _selectedFileName!,
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 13,
+                                color: Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isSubmitting ? null : _submitWorksheet,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal[400],
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor:
+                                        AlwaysStoppedAnimation(Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  'Submit worksheet',
+                                  style: AppTextStyles.buttonPrimary,
+                                ),
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
