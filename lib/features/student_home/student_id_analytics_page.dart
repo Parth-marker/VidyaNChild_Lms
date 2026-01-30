@@ -36,11 +36,7 @@ class StudentIdAnalyticsPage extends StatelessWidget {
               const SizedBox(height: 16),
               const _PuzzleSummaryCard(),
               const SizedBox(height: 16),
-              _AlertCard(
-                title: 'Decimals',
-                message:
-                    'Unit 2 scores are trending down. Focus on decimal concepts and data handlingis recommended to build a stronger foundation.',
-              ),
+              const _AIStudyPlanCard(),
             ],
           ),
         ),
@@ -50,14 +46,81 @@ class StudentIdAnalyticsPage extends StatelessWidget {
   }
 }
 
+class _AIStudyPlanCard extends StatelessWidget {
+  const _AIStudyPlanCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Text(
+            'Need a learning boost?',
+            style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Generate a personalized math study plan tailored to your goals and pace.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.body.copyWith(
+              fontSize: 14,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AIStudyPlanPage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 26, 122, 111),
+              minimumSize: const Size(double.infinity, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              'Create AI Study Plan',
+              style: AppTextStyles.buttonPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-      ]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -72,24 +135,58 @@ class _ProfileHeader extends StatelessWidget {
                         .snapshots(),
                     builder: (context, snapshot) {
                       String userName = 'Student';
-                      if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
-                        final data = snapshot.data!.data() as Map<String, dynamic>?;
+                      if (snapshot.hasData &&
+                          snapshot.data != null &&
+                          snapshot.data!.exists) {
+                        final data =
+                            snapshot.data!.data() as Map<String, dynamic>?;
                         userName = data?['name'] as String? ?? 'Student';
                       }
-                      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(userName, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-                        Text(currentUser.email ?? '', style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
-                      ]);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: AppTextStyles.body.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            currentUser.email ?? '',
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      );
                     },
                   )
-                : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Student', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-                    Text('', style: AppTextStyles.body.copyWith(fontSize: 13, color: Colors.black54)),
-                  ]),
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Student',
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '',
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
           ElevatedButton(
             onPressed: () async {
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
               await authProvider.logout();
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
@@ -98,8 +195,16 @@ class _ProfileHeader extends StatelessWidget {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[300], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: Text('Log out', style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple[300],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Log out',
+              style: AppTextStyles.buttonPrimary.copyWith(fontSize: 14),
+            ),
           ),
         ],
       ),
@@ -167,10 +272,7 @@ class _StudentQuizBarChartCard extends StatelessWidget {
                 style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
               ),
               const SizedBox(height: 12),
-              SizedBox(
-                height: 180,
-                child: _SimpleBarChart(values: values),
-              ),
+              SizedBox(height: 180, child: _SimpleBarChart(values: values)),
             ],
           ),
         );
@@ -212,12 +314,11 @@ class _StudentSubmissionStatsCard extends StatelessWidget {
 
             final quizPercentage = quizzes.isEmpty
                 ? 0
-                : ((quizSubmissions.length / quizzes.length) * 100)
-                    .round();
+                : ((quizSubmissions.length / quizzes.length) * 100).round();
             final worksheetPercentage = worksheets.isEmpty
                 ? 0
                 : ((worksheetSubmissions.length / worksheets.length) * 100)
-                    .round();
+                      .round();
 
             return Container(
               width: double.infinity,
@@ -264,10 +365,7 @@ class _SubmissionStatRow extends StatelessWidget {
   final String label;
   final int percentage;
 
-  const _SubmissionStatRow({
-    required this.label,
-    required this.percentage,
-  });
+  const _SubmissionStatRow({required this.label, required this.percentage});
 
   @override
   Widget build(BuildContext context) {
@@ -276,8 +374,7 @@ class _SubmissionStatRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: AppTextStyles.body
-                .copyWith(fontWeight: FontWeight.w600),
+            style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         Text(
@@ -394,16 +491,13 @@ class _PuzzleScoreRow extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: AppTextStyles.body
-                .copyWith(fontWeight: FontWeight.w600),
+            style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         if (score != null)
           Text(
             '$score/$maxScore',
-            style: AppTextStyles.body.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
           )
         else
           Text(
@@ -416,8 +510,7 @@ class _PuzzleScoreRow extends StatelessWidget {
         const SizedBox(width: 8),
         if (badge != null && badge!.isNotEmpty)
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: _getBadgeColor(badge).withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
@@ -432,48 +525,6 @@ class _PuzzleScoreRow extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _AlertCard extends StatelessWidget {
-  final String title;
-  final String message;
-  const _AlertCard({required this.title, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-      ]),
-      padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Areas for Improvement', style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
-        const SizedBox(height: 10),
-        Row(children: [
-          const Icon(Icons.trending_down, color: Colors.red),
-          const SizedBox(width: 8),
-          Text(title, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-        ]),
-        const SizedBox(height: 6),
-        Text(message, style: AppTextStyles.body.copyWith(fontSize: 14, color: Colors.black87)),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AIStudyPlanPage()),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 26, 122, 111),
-            minimumSize: const Size(double.infinity, 52),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          child: Text('Create AI Study Plan', style: AppTextStyles.buttonPrimary),
-        ),
-      ]),
     );
   }
 }
@@ -502,10 +553,7 @@ class _LoadingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
-          ),
+          Text(title, style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
           const SizedBox(height: 12),
           const Center(
             child: SizedBox(
@@ -545,15 +593,14 @@ class _EmptyCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: AppTextStyles.h1Purple.copyWith(fontSize: 18),
-          ),
+          Text(title, style: AppTextStyles.h1Purple.copyWith(fontSize: 18)),
           const SizedBox(height: 8),
           Text(
             message,
-            style: AppTextStyles.body
-                .copyWith(fontSize: 14, color: Colors.black54),
+            style: AppTextStyles.body.copyWith(
+              fontSize: 14,
+              color: Colors.black54,
+            ),
           ),
         ],
       ),
@@ -578,7 +625,10 @@ class _SimpleBarChart extends StatelessWidget {
     }
 
     final maxValue = values.fold<double>(
-        0, (previousValue, element) => element > previousValue ? element : previousValue);
+      0,
+      (previousValue, element) =>
+          element > previousValue ? element : previousValue,
+    );
     final effectiveMax = maxValue > 0 ? maxValue : 100;
 
     return Row(
@@ -593,13 +643,14 @@ class _SimpleBarChart extends StatelessWidget {
                 children: [
                   Text(
                     '${values[i].toStringAsFixed(0)}%',
-                    style: AppTextStyles.body
-                        .copyWith(fontSize: 11, color: Colors.black54),
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 11,
+                      color: Colors.black54,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    height:
-                        100 * (values[i] / effectiveMax).clamp(0.0, 1.0),
+                    height: 100 * (values[i] / effectiveMax).clamp(0.0, 1.0),
                     decoration: BoxDecoration(
                       color: Colors.teal[400],
                       borderRadius: BorderRadius.circular(8),
@@ -608,8 +659,10 @@ class _SimpleBarChart extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Q${i + 1}',
-                    style: AppTextStyles.body
-                        .copyWith(fontSize: 11, color: Colors.black45),
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 11,
+                      color: Colors.black45,
+                    ),
                   ),
                 ],
               ),
@@ -619,4 +672,3 @@ class _SimpleBarChart extends StatelessWidget {
     );
   }
 }
-
