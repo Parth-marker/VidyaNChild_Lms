@@ -62,23 +62,35 @@ class _LoginPageState extends State<LoginPage> {
                     );
                     setState(() => loading = false);
 
-                    if(context.mounted){
-              if(res){
-                // Pop all routes back to root (AuthWrapper) which will handle routing based on account type
-                // The auth state change will trigger AuthWrapper to rebuild and route correctly
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              }else{
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Something went error")));
-              }
-            }
-                  }
+                    if (context.mounted) {
+                      if (res) {
+                        // Pop all routes back to root (AuthWrapper) which will handle routing based on account type
+                        // The auth state change will trigger AuthWrapper to rebuild and route correctly
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Something went error")),
+                        );
+                      }
+                    }
+                  },
                 ),
                 const SizedBox(height: 20),
-                Text("Forgot Password?", style: AppTextStyles.linkPurple),
 
-                TextButton(onPressed: (){
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => SignUpPage()));
-                }, child: Text("Don't have an account? Register", style: AppTextStyles.linkPurple)),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SignUpPage()),
+                    );
+                  },
+                  child: Text(
+                    "Don't have an account? Register",
+                    style: AppTextStyles.linkPurple,
+                  ),
+                ),
               ],
             ),
           ),
@@ -95,11 +107,7 @@ class _LogoHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(
-          Icons.school_rounded,
-          size: 80,
-          color: Colors.teal,
-        ),
+        Icon(Icons.school_rounded, size: 80, color: Colors.teal),
         const SizedBox(height: 15),
         Text("Welcome Back!", style: AppTextStyles.h1Teal),
         Text("Log in to continue learning", style: AppTextStyles.body),
@@ -132,7 +140,10 @@ class _TextFieldWidget extends StatelessWidget {
         hintText: hintText,
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 15,
+          horizontal: 20,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
@@ -145,10 +156,7 @@ class _TextFieldWidget extends StatelessWidget {
 class _LoginButton extends StatelessWidget {
   final bool loading;
   final VoidCallback onPressed;
-  const _LoginButton({
-    required this.loading,
-    required this.onPressed,
-  });
+  const _LoginButton({required this.loading, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -157,14 +165,12 @@ class _LoginButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.purple[300],
         minimumSize: const Size(double.infinity, 55),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         elevation: 5,
       ),
       child: loading
-        ? const CircularProgressIndicator(color: Colors.white)
-        : Text("Login", style: AppTextStyles.buttonPrimary),
+          ? const CircularProgressIndicator(color: Colors.white)
+          : Text("Login", style: AppTextStyles.buttonPrimary),
     );
   }
 }

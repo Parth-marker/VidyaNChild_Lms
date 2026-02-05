@@ -48,28 +48,32 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyA_61CuJZctTdiRJ-SlbTcsKIc6rMTzxvA',
-    appId: '1:291416133834:web:ac3e5fac6a6f04f0d2a433',
+    appId: '1:291416133834:web:c3ba6a82c943b894d2a433',
     messagingSenderId: '291416133834',
     projectId: 'vidyanchild-lms',
     authDomain: 'vidyanchild-lms.firebaseapp.com',
+    databaseURL: 'https://vidyanchild-lms-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'vidyanchild-lms.firebasestorage.app',
-    measurementId: 'G-BS4Q47RDH3',
+    measurementId: 'G-F10RHDDXGD',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCWSg-t_Jro36aPcO69zTJzYjMNhvx21rk',
-    appId: '1:291416133834:android:a07d1d5059781bfbd2a433',
+    appId: '1:291416133834:android:2d241744c7e9a168d2a433',
     messagingSenderId: '291416133834',
     projectId: 'vidyanchild-lms',
+    databaseURL: 'https://vidyanchild-lms-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'vidyanchild-lms.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBHLpoE05jJUoh00y9Hg061rIeHDgoVZbI',
-    appId: '1:291416133834:ios:dbd2eb019699b71bd2a433',
+    appId: '1:291416133834:ios:22aa9a996085e7a8d2a433',
     messagingSenderId: '291416133834',
     projectId: 'vidyanchild-lms',
+    databaseURL: 'https://vidyanchild-lms-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'vidyanchild-lms.firebasestorage.app',
-    iosBundleId: 'com.example.lmsProject',
+    iosBundleId: 'com.vidyachildlms.app',
   );
+
 }

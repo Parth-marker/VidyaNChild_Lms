@@ -5,7 +5,6 @@ class StudyPlan {
   final String userId;
   final String title;
   final String mathTopic;
-  final String goal;
   final String currentLevel;
   final int hoursPerWeek;
   final int durationWeeks;
@@ -19,7 +18,6 @@ class StudyPlan {
     required this.userId,
     required this.title,
     required this.mathTopic,
-    required this.goal,
     required this.currentLevel,
     required this.hoursPerWeek,
     required this.durationWeeks,
@@ -35,7 +33,6 @@ class StudyPlan {
       userId: map['userId'] ?? '',
       title: map['title'] ?? 'Untitled Plan',
       mathTopic: map['mathTopic'] ?? 'General Math',
-      goal: map['goal'] ?? '',
       currentLevel: map['currentLevel'] ?? 'Beginner',
       hoursPerWeek: map['hoursPerWeek'] ?? 1,
       durationWeeks: map['durationWeeks'] ?? 1,
@@ -51,7 +48,6 @@ class StudyPlan {
       'userId': userId,
       'title': title,
       'mathTopic': mathTopic,
-      'goal': goal,
       'currentLevel': currentLevel,
       'hoursPerWeek': hoursPerWeek,
       'durationWeeks': durationWeeks,

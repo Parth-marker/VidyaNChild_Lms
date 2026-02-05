@@ -36,7 +36,6 @@ class StudyPlanProvider extends ChangeNotifier {
   StudyPlan createPlanFromContent({
     required String userId,
     required String mathTopic,
-    required String goal,
     required String currentLevel,
     required int hoursPerWeek,
     required int durationWeeks,
@@ -49,7 +48,6 @@ class StudyPlanProvider extends ChangeNotifier {
       userId: userId,
       title: title,
       mathTopic: mathTopic,
-      goal: goal,
       currentLevel: currentLevel,
       hoursPerWeek: hoursPerWeek,
       durationWeeks: durationWeeks,

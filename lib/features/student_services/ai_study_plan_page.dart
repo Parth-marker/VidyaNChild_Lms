@@ -72,7 +72,6 @@ class _GeneratePlanTabState extends State<_GeneratePlanTab> {
 
   // Form Values
   String _selectedTopic = 'Algebra';
-  String _goal = '';
   String _currentLevel = 'Beginner';
   double _hoursPerWeek = 5;
   int _durationWeeks = 4;
@@ -111,7 +110,6 @@ class _GeneratePlanTabState extends State<_GeneratePlanTab> {
     try {
       final generatedContent = await geminiProvider.generateMathStudyPlan(
         mathTopic: _selectedTopic,
-        goal: _goal,
         currentLevel: _currentLevel,
         hoursPerWeek: _hoursPerWeek.round(),
         durationWeeks: _durationWeeks,
@@ -121,17 +119,17 @@ class _GeneratePlanTabState extends State<_GeneratePlanTab> {
       // Create plan object but don't save yet
       final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (userId.isEmpty) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please login to save plans')),
           );
+        }
         return;
       }
 
       final plan = studyPlanProvider.createPlanFromContent(
         userId: userId,
         mathTopic: _selectedTopic,
-        goal: _goal,
         currentLevel: _currentLevel,
         hoursPerWeek: _hoursPerWeek.round(),
         durationWeeks: _durationWeeks,
@@ -181,27 +179,6 @@ class _GeneratePlanTabState extends State<_GeneratePlanTab> {
               value: _selectedTopic,
               items: _topics,
               onChanged: (val) => setState(() => _selectedTopic = val!),
-            ),
-
-            const SizedBox(height: 16),
-            Text(
-              'Target Goal',
-              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              decoration: InputDecoration(
-                hintText: 'e.g., Master quadratic equations',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              validator: (val) =>
-                  val == null || val.isEmpty ? 'Please enter a goal' : null,
-              onSaved: (val) => _goal = val!,
             ),
 
             const SizedBox(height: 16),
@@ -509,16 +486,6 @@ class _MyPlansTab extends StatelessWidget {
                         fontSize: 13,
                         color: Colors.black54,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Goal: ${plan.goal}',
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 13,
-                        color: Colors.teal[600],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

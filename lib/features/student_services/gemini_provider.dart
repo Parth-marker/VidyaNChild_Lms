@@ -75,7 +75,6 @@ class GeminiProvider extends ChangeNotifier {
   /// Generate a Math study plan based on parameters
   Future<String> generateMathStudyPlan({
     required String mathTopic,
-    required String goal,
     required String currentLevel,
     required int hoursPerWeek,
     required int durationWeeks,
@@ -87,7 +86,6 @@ You are an expert Math tutor. Create a detailed, personalized study plan for a s
 
 **Student Profile:**
 - Math Topic: $mathTopic
-- Goal: $goal
 - Current Level: $currentLevel
 - Available Study Time: $hoursPerWeek hours per week
 - Plan Duration: $durationWeeks weeks
